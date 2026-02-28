@@ -5,7 +5,7 @@
 Docker-образы публикуются в **GitHub Container Registry (GHCR)**:
 
 ```
-ghcr.io/<username>/tech-radar/fullstack/backend:<tag>
+ghcr.io/<username>/<repository>:<tag>
 ```
 
 ## Теги образов
@@ -35,10 +35,10 @@ echo $GH_PAT | docker login ghcr.io -u <username> --password-stdin
 
 ```bash
 # Последняя версия
-docker pull ghcr.io/<username>/tech-radar/fullstack/backend:latest
+docker pull ghcr.io/<username>/<repository>:latest
 
 # Конкретная версия
-docker pull ghcr.io/<username>/tech-radar/fullstack/backend:v1.0.0
+docker pull ghcr.io/<username>/<repository>:v1.0.0
 ```
 
 ### 3. Запуск с помощью docker-compose
@@ -50,7 +50,7 @@ version: '3.8'
 
 services:
   backend:
-    image: ghcr.io/<username>/tech-radar/fullstack/backend:latest
+    image: ghcr.io/<username>/<repository>:latest
     ports:
       - "5000:5000"
     environment:
