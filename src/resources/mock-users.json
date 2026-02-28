@@ -1,0 +1,20 @@
+[
+  {
+    "id": "admin-001",
+    "email": "admin@techradar.local",
+    "password": "$2a$10$rQZ9vXJXL5K5Z5Z5Z5Z5ZeYhQGYhQGYhQGYhQGYhQGYhQGYhQGYhQ",
+    "firstName": "Админ",
+    "lastName": "Админов",
+    "role": "admin",
+    "isActive": true
+  },
+  {
+    "id": "user-001",
+    "email": "user@techradar.local",
+    "password": "$2a$10$rQZ9vXJXL5K5Z5Z5Z5Z5ZeYhQGYhQGYhQGYhQGYhQGYhQGYhQGYhQ",
+    "firstName": "Пользователь",
+    "lastName": "Пользователей",
+    "role": "user",
+    "isActive": true
+  }
+]
