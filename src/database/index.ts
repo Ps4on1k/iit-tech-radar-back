@@ -1,5 +1,4 @@
 import { DataSource } from 'typeorm';
-import { TechRadarEntity, User } from '../models';
 import * as dotenv from 'dotenv';
 
 dotenv.config({ path: '.env' });
@@ -12,8 +11,8 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'tech_radar',
   synchronize: true,  // Auto-create tables on first run
-  logging: process.env.NODE_ENV === 'development',
-  entities: [TechRadarEntity, User],
-  migrations: ['src/database/migrations/*.ts'],
+  logging: false,
+  entities: ['dist/models/*.js'],
+  migrations: ['dist/database/migrations/*.js'],
   subscribers: [],
 });

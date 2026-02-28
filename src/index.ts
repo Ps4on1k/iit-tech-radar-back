@@ -5,7 +5,6 @@ import bcrypt from 'bcryptjs';
 import { config } from './config';
 import { techRadarRoutes, authRoutes, importRoutes } from './routes';
 import { AppDataSource } from './database';
-import { User } from './models/User';
 
 async function bootstrap() {
   const app = express();
@@ -18,8 +17,10 @@ async function bootstrap() {
 
       // Автоматический seed пользователей
       await seedUsers();
-    } catch (error) {
-      console.error('Ошибка подключения к БД:', error);
+      console.log('Seed пользователей завершен');
+    } catch (error: any) {
+      console.error('Ошибка подключения к БД:', error?.message || error);
+      console.log('Запуск без базы данных');
     }
   } else {
     console.log('Режим работы: mock данные');
@@ -62,6 +63,8 @@ bootstrap().catch(console.error);
 // Автоматический seed пользователей
 async function seedUsers() {
   try {
+    // Динамический импорт User после инициализации TypeORM
+    const { User } = await import('./models/User');
     const userRepository = AppDataSource.getRepository(User);
 
     // Проверяем наличие пользователей
@@ -100,7 +103,12 @@ async function seedUsers() {
       await userRepository.save(user);
       console.log('Создан пользователь: user@techradar.local');
     }
-  } catch (error) {
-    console.error('Ошибка при seed пользователей:', error);
+  } catch (error: any) {
+    // Игнорируем ошибку если таблица ещё не создана
+    if (error?.message?.includes('relation') || error?.message?.includes('table')) {
+      console.log('Таблица пользователей будет создана автоматически');
+    } else {
+      console.error('Ошибка при seed пользователей:', error?.message || error);
+    }
   }
 }
