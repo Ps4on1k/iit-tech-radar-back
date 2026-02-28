@@ -13,12 +13,12 @@ RUN apk add --no-cache wget curl
 COPY package*.json ./
 RUN npm ci --frozen-lockfile
 
-# Copy source files for migrations and seed
+# Copy source files for seed
 COPY src ./src
-COPY typeorm.config.ts ./
 COPY --from=builder /app/dist ./dist
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
 
 EXPOSE 5000
 
-# Run migrations and seed, then start server
-CMD ["sh", "-c", "npm run migration:run && npm run seed && node dist/index.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

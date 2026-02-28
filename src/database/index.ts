@@ -11,7 +11,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'tech_radar',
-  synchronize: false,
+  synchronize: true,  // Auto-create tables on first run
   logging: process.env.NODE_ENV === 'development',
   entities: [TechRadarEntity, User],
   migrations: ['src/database/migrations/*.ts'],
