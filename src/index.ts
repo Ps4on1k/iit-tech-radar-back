@@ -1,9 +1,11 @@
 import 'reflect-metadata';
 import express from 'express';
 import cors from 'cors';
+import bcrypt from 'bcryptjs';
 import { config } from './config';
 import { techRadarRoutes, authRoutes, importRoutes } from './routes';
 import { AppDataSource } from './database';
+import { User } from './models/User';
 
 async function bootstrap() {
   const app = express();
@@ -13,6 +15,9 @@ async function bootstrap() {
     try {
       await AppDataSource.initialize();
       console.log('База данных подключена');
+
+      // Автоматический seed пользователей
+      await seedUsers();
     } catch (error) {
       console.error('Ошибка подключения к БД:', error);
     }
@@ -53,3 +58,49 @@ async function bootstrap() {
 }
 
 bootstrap().catch(console.error);
+
+// Автоматический seed пользователей
+async function seedUsers() {
+  try {
+    const userRepository = AppDataSource.getRepository(User);
+
+    // Проверяем наличие пользователей
+    const existingAdmin = await userRepository.findOne({ where: { email: 'admin@techradar.local' } });
+    const existingUser = await userRepository.findOne({ where: { email: 'user@techradar.local' } });
+
+    if (existingAdmin && existingUser) {
+      console.log('Пользователи уже существуют');
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash('password123', 10);
+
+    if (!existingAdmin) {
+      const admin = userRepository.create({
+        email: 'admin@techradar.local',
+        password: hashedPassword,
+        firstName: 'Админ',
+        lastName: 'Админов',
+        role: 'admin',
+        isActive: true,
+      });
+      await userRepository.save(admin);
+      console.log('Создан администратор: admin@techradar.local');
+    }
+
+    if (!existingUser) {
+      const user = userRepository.create({
+        email: 'user@techradar.local',
+        password: hashedPassword,
+        firstName: 'Пользователь',
+        lastName: 'Пользователей',
+        role: 'user',
+        isActive: true,
+      });
+      await userRepository.save(user);
+      console.log('Создан пользователь: user@techradar.local');
+    }
+  } catch (error) {
+    console.error('Ошибка при seed пользователей:', error);
+  }
+}
