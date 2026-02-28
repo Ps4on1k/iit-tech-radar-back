@@ -53,7 +53,9 @@ backend/
 │   │   ├── DatabaseTechRadarRepository.ts # DB репозиторий
 │   │   ├── UserRepository.ts     # Репозиторий пользователей
 │   │   └── index.ts
-│   └── index.ts                  # Точка входа
+│   └── index.ts                  # Точка входа (автоматический seed)
+├── docker-entrypoint.sh          # Скрипт запуска
+├── Dockerfile
 ├── .env                          # Переменные окружения
 ├── .env.example                  # Пример переменных
 ├── typeorm.config.ts             # Конфигурация TypeORM для CLI
@@ -83,6 +85,43 @@ npm start
 ```
 
 **Сервер доступен на:** `http://localhost:5000`
+
+---
+
+## Docker развёртывание
+
+### Сборка образа
+
+```bash
+docker build -t tech-radar-backend .
+```
+
+### Запуск контейнера
+
+```bash
+docker run -d -p 5000:5000 \
+  -e DB_HOST=localhost \
+  -e DB_PASSWORD=your-password \
+  tech-radar-backend
+```
+
+### Автоматический seed пользователей
+
+При первом запуске контейнера автоматически создаются пользователи:
+- `admin@techradar.local` / `password123` (role: admin)
+- `user@techradar.local` / `password123` (role: user)
+
+**Seed выполняется только если пользователей нет в БД.**
+
+### GitHub Actions
+
+При пуше в `main/master` или создании тега автоматически собирается и публикуется Docker-образ в GHCR:
+
+```
+ghcr.io/ps4on1k/iit-tech-radar-back:latest
+```
+
+Подробная инструкция в [`DEPLOY.md`](../DEPLOY.md).
 
 ---
 
