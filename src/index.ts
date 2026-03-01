@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import { config } from './config';
-import { techRadarRoutes, authRoutes, importRoutes } from './routes';
+import { techRadarRoutes, authRoutes, importRoutes, versionRoutes } from './routes';
 import { AppDataSource } from './database';
 
 async function bootstrap() {
@@ -38,6 +38,7 @@ async function bootstrap() {
   app.use('/api/tech-radar', techRadarRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/import', importRoutes);
+  app.use('/api/version', versionRoutes);
 
   // Health check
   app.get('/health', (req, res) => {
