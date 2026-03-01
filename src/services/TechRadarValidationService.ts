@@ -14,7 +14,7 @@ export interface ValidationResult {
 
 // Валидация enum значений
 const VALID_TYPES = ['фреймворк', 'библиотека', 'язык программирования', 'инструмент'] as const;
-const VALID_SUBTYPES = ['фронтенд', 'бэкенд', 'мобильная разработка', 'инфраструктура', 'аналитика', 'DevOps', 'SaaS', 'библиотека'] as const;
+const VALID_SUBTYPES = ['фронтенд', 'бэкенд', 'мобильная разработка', 'инфраструктура', 'аналитика', 'DevOps', 'SaaS', 'библиотека', 'data engineering', 'AI', 'observability', 'базы данных', 'тестирование', 'автотесты', 'нагрузочные тесты', 'безопасность', 'очереди', 'desktop', 'прочее'] as const;
 const VALID_CATEGORIES = ['adopt', 'trial', 'assess', 'hold', 'drop'] as const;
 const VALID_MATURITY = ['experimental', 'active', 'stable', 'deprecated', 'end-of-life'] as const;
 const VALID_RISK_LEVEL = ['low', 'medium', 'high', 'critical'] as const;

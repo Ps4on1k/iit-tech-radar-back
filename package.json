@@ -1,6 +1,6 @@
 {
   "name": "tech-radar-backend",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Backend для Tech Radar приложения",
   "main": "dist/index.js",
   "scripts": {
