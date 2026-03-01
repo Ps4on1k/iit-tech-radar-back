@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'user' | 'manager';
 
 @Entity('users')
 export class User {
@@ -20,7 +20,7 @@ export class User {
   lastName!: string;
 
   @Column('enum', {
-    enum: ['admin', 'user'],
+    enum: ['admin', 'user', 'manager'],
     default: 'user',
   })
   role!: UserRole;

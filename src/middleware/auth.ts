@@ -67,3 +67,5 @@ export const requireRole = (...roles: string[]) => {
 };
 
 export const isAdmin = requireRole('admin');
+export const isManager = requireRole('manager', 'admin');
+export const isManagerOrAdmin = requireRole('manager', 'admin');

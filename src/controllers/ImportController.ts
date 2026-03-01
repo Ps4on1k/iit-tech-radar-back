@@ -25,8 +25,8 @@ export class ImportController {
   importTechRadar = async (req: Request, res: Response): Promise<void> => {
     try {
       const authReq = req as any;
-      if (!authReq.user || authReq.user.role !== 'admin') {
-        res.status(403).json({ error: 'Только администратор может импортировать данные' });
+      if (!authReq.user || !['admin', 'manager'].includes(authReq.user.role)) {
+        res.status(403).json({ error: 'Только администратор или менеджер может импортировать данные' });
         return;
       }
 
@@ -66,8 +66,8 @@ export class ImportController {
   exportTechRadar = async (req: Request, res: Response): Promise<void> => {
     try {
       const authReq = req as any;
-      if (!authReq.user || authReq.user.role !== 'admin') {
-        res.status(403).json({ error: 'Только администратор может экспортировать данные' });
+      if (!authReq.user || !['admin', 'manager'].includes(authReq.user.role)) {
+        res.status(403).json({ error: 'Только администратор или менеджер может экспортировать данные' });
         return;
       }
 
@@ -87,8 +87,8 @@ export class ImportController {
   validateImport = async (req: Request, res: Response): Promise<void> => {
     try {
       const authReq = req as any;
-      if (!authReq.user || authReq.user.role !== 'admin') {
-        res.status(403).json({ error: 'Только администратор может валидировать данные' });
+      if (!authReq.user || !['admin', 'manager'].includes(authReq.user.role)) {
+        res.status(403).json({ error: 'Только администратор или менеджер может валидировать данные' });
         return;
       }
 

@@ -143,8 +143,8 @@ export class TechRadarController {
   create = async (req: Request, res: Response): Promise<void> => {
     try {
       const authReq = req as any;
-      if (!authReq.user || authReq.user.role !== 'admin') {
-        res.status(403).json({ error: 'Только администратор может создавать технологии' });
+      if (!authReq.user || !['admin', 'manager'].includes(authReq.user.role)) {
+        res.status(403).json({ error: 'Только администратор или менеджер может создавать технологии' });
         return;
       }
 
@@ -170,8 +170,8 @@ export class TechRadarController {
   update = async (req: Request, res: Response): Promise<void> => {
     try {
       const authReq = req as any;
-      if (!authReq.user || authReq.user.role !== 'admin') {
-        res.status(403).json({ error: 'Только администратор может редактировать технологии' });
+      if (!authReq.user || !['admin', 'manager'].includes(authReq.user.role)) {
+        res.status(403).json({ error: 'Только администратор или менеджер может редактировать технологии' });
         return;
       }
 
@@ -212,8 +212,8 @@ export class TechRadarController {
   delete = async (req: Request, res: Response): Promise<void> => {
     try {
       const authReq = req as any;
-      if (!authReq.user || authReq.user.role !== 'admin') {
-        res.status(403).json({ error: 'Только администратор может удалять технологии' });
+      if (!authReq.user || !['admin', 'manager'].includes(authReq.user.role)) {
+        res.status(403).json({ error: 'Только администратор или менеджер может удалять технологии' });
         return;
       }
 
