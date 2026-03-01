@@ -1,8 +1,8 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('tech_radar')
 export class TechRadarEntity {
-  @PrimaryColumn('varchar')
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column('varchar')
