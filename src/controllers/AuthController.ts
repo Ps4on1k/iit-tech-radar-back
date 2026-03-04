@@ -1,19 +1,19 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/AuthService';
+import { auditService } from '../services/AuditService';
+import { LoginDto } from '../dto/LoginDto';
+import { CreateUserDto } from '../dto/CreateUserDto';
+import { UpdateUserDto } from '../dto/UpdateUserDto';
+import { ChangePasswordDto } from '../dto/ChangePasswordDto';
 
 const authService = new AuthService();
 
 export class AuthController {
   login = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { email, password } = req.body;
+      const dto = req.body as LoginDto;
 
-      if (!email || !password) {
-        res.status(400).json({ error: 'Требуется email и пароль' });
-        return;
-      }
-
-      const result = await authService.login({ email, password });
+      const result = await authService.login(dto);
 
       res.json({
         token: result.token,
@@ -25,7 +25,26 @@ export class AuthController {
           role: result.user.role,
         },
       });
+
+      // Логируем успешный вход после отправки ответа (не блокируя)
+      auditService.logSuccess({
+        action: 'LOGIN',
+        entity: 'Auth',
+        entityId: result.user.id,
+        ipAddress: req.ip,
+        details: { email: result.user.email },
+      }).catch(() => {}); // Игнорируем ошибки логирования
     } catch (error: any) {
+      const dto = req.body as LoginDto;
+      
+      // Логируем неудачную попытку
+      auditService.logFailure({
+        action: 'LOGIN',
+        entity: 'Auth',
+        ipAddress: req.ip,
+        details: { email: dto?.email, error: error.message },
+      }).catch(() => {}); // Игнорируем ошибки логирования
+      
       res.status(401).json({ error: error.message || 'Ошибка аутентификации' });
     }
   };
@@ -97,19 +116,14 @@ export class AuthController {
         return;
       }
 
-      const { email, password, firstName, lastName, role } = req.body;
-
-      if (!email || !password || !firstName || !lastName) {
-        res.status(400).json({ error: 'Требуется email, пароль, имя и фамилия' });
-        return;
-      }
+      const dto = req.body as CreateUserDto;
 
       const user = await authService.createUser({
-        email,
-        password,
-        firstName,
-        lastName,
-        role: role || 'user',
+        email: dto.email,
+        password: dto.password,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        role: (dto.role || 'user') as 'admin' | 'user',
       });
 
       const { password: _, ...safeUser } = user as any;
@@ -128,15 +142,15 @@ export class AuthController {
       }
 
       const id = String(req.params.id);
-      const { email, firstName, lastName, role, isActive } = req.body;
+      const dto = req.body as UpdateUserDto;
 
       const updated = await authService.updateUser(id, {
-        email,
-        firstName,
-        lastName,
-        role,
-        isActive,
-      } as any);
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        role: dto.role as any,
+        isActive: dto.isActive,
+      });
 
       if (!updated) {
         res.status(404).json({ error: 'Пользователь не найден' });
@@ -187,22 +201,17 @@ export class AuthController {
         return;
       }
 
-      const { currentPassword, newPassword } = req.body;
-
-      if (!currentPassword || !newPassword) {
-        res.status(400).json({ error: 'Требуется текущий и новый пароль' });
-        return;
-      }
+      const dto = req.body as ChangePasswordDto;
 
       // Проверяем текущий пароль
-      const validUser = await authService.validateUser(authReq.user.email, currentPassword);
+      const validUser = await authService.validateUser(authReq.user.email, dto.oldPassword);
 
       if (!validUser) {
         res.status(401).json({ error: 'Неверный текущий пароль' });
         return;
       }
 
-      await authService.changePassword(authReq.user.id, newPassword);
+      await authService.changePassword(authReq.user.id, dto.newPassword);
 
       res.json({ message: 'Пароль успешно изменен' });
     } catch (error) {

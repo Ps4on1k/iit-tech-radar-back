@@ -23,14 +23,22 @@ export class AuthService {
   private userRepository = createUserRepository();
 
   generateToken(payload: JwtPayload): string {
-    return jwt.sign(payload, config.jwt.secret, {
+    const secret = config.jwt.secret;
+    if (!secret) {
+      throw new Error('JWT_SECRET не настроен в переменных окружения');
+    }
+    return jwt.sign(payload, secret, {
       expiresIn: config.jwt.expiresIn,
     } as jwt.SignOptions);
   }
 
   verifyToken(token: string): JwtPayload | null {
+    const secret = config.jwt.secret;
+    if (!secret) {
+      throw new Error('JWT_SECRET не настроен в переменных окружения');
+    }
     try {
-      return jwt.verify(token, config.jwt.secret) as JwtPayload;
+      return jwt.verify(token, secret) as JwtPayload;
     } catch {
       return null;
     }

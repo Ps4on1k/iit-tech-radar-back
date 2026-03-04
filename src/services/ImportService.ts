@@ -1,6 +1,21 @@
 import { AppDataSource } from '../database';
 import { TechRadarEntity } from '../models/TechRadarEntity';
 import { Repository } from 'typeorm';
+import {
+  TECH_RADAR_TYPES,
+  TECH_RADAR_SUBTYPES,
+  TECH_RADAR_CATEGORIES,
+  TECH_RADAR_MATURITY,
+  TECH_RADAR_RISK_LEVEL,
+  TECH_RADAR_SUPPORT_STATUS,
+  TECH_RADAR_PERFORMANCE_IMPACT,
+  TECH_RADAR_CONTRIBUTION_FREQUENCY,
+  TECH_RADAR_COST_FACTOR,
+  TECH_RADAR_BUSINESS_CRITICALITY,
+  TECH_RADAR_CPU,
+  TECH_RADAR_MEMORY,
+  TECH_RADAR_STORAGE,
+} from '../constants/tech-radar.constants';
 
 // Тип для результата импорта
 export interface ImportResult {
@@ -15,21 +30,6 @@ export interface ImportError {
   id?: string;
   message: string;
 }
-
-// Валидация enum значений
-const VALID_TYPES = ['фреймворк', 'библиотека', 'язык программирования', 'инструмент'] as const;
-const VALID_SUBTYPES = ['фронтенд', 'бэкенд', 'мобильная разработка', 'инфраструктура', 'аналитика', 'DevOps', 'SaaS', 'библиотека'] as const;
-const VALID_CATEGORIES = ['adopt', 'trial', 'assess', 'hold', 'drop'] as const;
-const VALID_MATURITY = ['experimental', 'active', 'stable', 'deprecated', 'end-of-life'] as const;
-const VALID_RISK_LEVEL = ['low', 'medium', 'high', 'critical'] as const;
-const VALID_SUPPORT_STATUS = ['active', 'limited', 'end-of-life', 'community-only'] as const;
-const VALID_PERFORMANCE_IMPACT = ['low', 'medium', 'high'] as const;
-const VALID_CONTRIBUTION_FREQUENCY = ['frequent', 'regular', 'occasional', 'rare', 'none'] as const;
-const VALID_COST_FACTOR = ['free', 'paid', 'subscription', 'enterprise'] as const;
-const VALID_BUSINESS_CRITICALITY = ['low', 'medium', 'high', 'critical'] as const;
-const VALID_CPU = ['низкие', 'средние', 'высокие', 'очень высокие'] as const;
-const VALID_MEMORY = ['низкие', 'средние', 'высокие', 'очень высокие'] as const;
-const VALID_STORAGE = ['минимальные', 'низкие', 'средние', 'высокие'] as const;
 
 export class ImportService {
   private repository: Repository<TechRadarEntity>;
@@ -66,46 +66,46 @@ export class ImportService {
     }
 
     // Валидация enum полей с защитой от SQL инъекций (строго заданные значения)
-    if (entity.type && !VALID_TYPES.includes(entity.type as any)) {
+    if (entity.type && !TECH_RADAR_TYPES.includes(entity.type as any)) {
       return { index, id: entity.id, message: `Недопустимое значение type: ${entity.type}` };
     }
-    if (entity.subtype && !VALID_SUBTYPES.includes(entity.subtype as any)) {
+    if (entity.subtype && !TECH_RADAR_SUBTYPES.includes(entity.subtype as any)) {
       return { index, id: entity.id, message: `Недопустимое значение subtype: ${entity.subtype}` };
     }
-    if (entity.category && !VALID_CATEGORIES.includes(entity.category as any)) {
+    if (entity.category && !TECH_RADAR_CATEGORIES.includes(entity.category as any)) {
       return { index, id: entity.id, message: `Недопустимое значение category: ${entity.category}` };
     }
-    if (entity.maturity && !VALID_MATURITY.includes(entity.maturity as any)) {
+    if (entity.maturity && !TECH_RADAR_MATURITY.includes(entity.maturity as any)) {
       return { index, id: entity.id, message: `Недопустимое значение maturity: ${entity.maturity}` };
     }
-    if (entity.riskLevel && !VALID_RISK_LEVEL.includes(entity.riskLevel as any)) {
+    if (entity.riskLevel && !TECH_RADAR_RISK_LEVEL.includes(entity.riskLevel as any)) {
       return { index, id: entity.id, message: `Недопустимое значение riskLevel: ${entity.riskLevel}` };
     }
-    if (entity.supportStatus && !VALID_SUPPORT_STATUS.includes(entity.supportStatus as any)) {
+    if (entity.supportStatus && !TECH_RADAR_SUPPORT_STATUS.includes(entity.supportStatus as any)) {
       return { index, id: entity.id, message: `Недопустимое значение supportStatus: ${entity.supportStatus}` };
     }
-    if (entity.performanceImpact && !VALID_PERFORMANCE_IMPACT.includes(entity.performanceImpact as any)) {
+    if (entity.performanceImpact && !TECH_RADAR_PERFORMANCE_IMPACT.includes(entity.performanceImpact as any)) {
       return { index, id: entity.id, message: `Недопустимое значение performanceImpact: ${entity.performanceImpact}` };
     }
-    if (entity.contributionFrequency && !VALID_CONTRIBUTION_FREQUENCY.includes(entity.contributionFrequency as any)) {
+    if (entity.contributionFrequency && !TECH_RADAR_CONTRIBUTION_FREQUENCY.includes(entity.contributionFrequency as any)) {
       return { index, id: entity.id, message: `Недопустимое значение contributionFrequency: ${entity.contributionFrequency}` };
     }
-    if (entity.costFactor && !VALID_COST_FACTOR.includes(entity.costFactor as any)) {
+    if (entity.costFactor && !TECH_RADAR_COST_FACTOR.includes(entity.costFactor as any)) {
       return { index, id: entity.id, message: `Недопустимое значение costFactor: ${entity.costFactor}` };
     }
-    if (entity.businessCriticality && !VALID_BUSINESS_CRITICALITY.includes(entity.businessCriticality as any)) {
+    if (entity.businessCriticality && !TECH_RADAR_BUSINESS_CRITICALITY.includes(entity.businessCriticality as any)) {
       return { index, id: entity.id, message: `Недопустимое значение businessCriticality: ${entity.businessCriticality}` };
     }
 
     // Валидация resourceRequirements
     if (entity.resourceRequirements) {
-      if (entity.resourceRequirements.cpu && !VALID_CPU.includes(entity.resourceRequirements.cpu as any)) {
+      if (entity.resourceRequirements.cpu && !TECH_RADAR_CPU.includes(entity.resourceRequirements.cpu as any)) {
         return { index, id: entity.id, message: `Недопустимое значение resourceRequirements.cpu: ${entity.resourceRequirements.cpu}` };
       }
-      if (entity.resourceRequirements.memory && !VALID_MEMORY.includes(entity.resourceRequirements.memory as any)) {
+      if (entity.resourceRequirements.memory && !TECH_RADAR_MEMORY.includes(entity.resourceRequirements.memory as any)) {
         return { index, id: entity.id, message: `Недопустимое значение resourceRequirements.memory: ${entity.resourceRequirements.memory}` };
       }
-      if (entity.resourceRequirements.storage && !VALID_STORAGE.includes(entity.resourceRequirements.storage as any)) {
+      if (entity.resourceRequirements.storage && !TECH_RADAR_STORAGE.includes(entity.resourceRequirements.storage as any)) {
         return { index, id: entity.id, message: `Недопустимое значение resourceRequirements.storage: ${entity.resourceRequirements.storage}` };
       }
     }

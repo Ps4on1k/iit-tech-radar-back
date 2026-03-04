@@ -1,7 +1,8 @@
 import { TechRadarEntity } from '../models';
 import mockData from '../resources/mock-data.json';
+import { ITechRadarRepository } from './ITechRadarRepository';
 
-export class MockTechRadarRepository {
+export class MockTechRadarRepository implements ITechRadarRepository {
   private data: TechRadarEntity[];
 
   constructor() {

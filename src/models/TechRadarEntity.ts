@@ -1,4 +1,19 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  TECH_RADAR_TYPES,
+  TECH_RADAR_SUBTYPES,
+  TECH_RADAR_CATEGORIES,
+  TECH_RADAR_MATURITY,
+  TECH_RADAR_RISK_LEVEL,
+  TECH_RADAR_SUPPORT_STATUS,
+  TECH_RADAR_PERFORMANCE_IMPACT,
+  TECH_RADAR_CONTRIBUTION_FREQUENCY,
+  TECH_RADAR_COST_FACTOR,
+  TECH_RADAR_BUSINESS_CRITICALITY,
+  TECH_RADAR_CPU,
+  TECH_RADAR_MEMORY,
+  TECH_RADAR_STORAGE,
+} from '../constants/tech-radar.constants';
 
 @Entity('tech_radar')
 export class TechRadarEntity {
@@ -14,20 +29,16 @@ export class TechRadarEntity {
   @Column('varchar', { nullable: true })
   versionReleaseDate?: string;
 
-  @Column('enum', {
-    enum: ['фреймворк', 'библиотека', 'язык программирования', 'инструмент'],
-  })
+  @Column('enum', { enum: TECH_RADAR_TYPES })
   type!: string;
 
   @Column('enum', {
-    enum: ['фронтенд', 'бэкенд', 'мобильная разработка', 'инфраструктура', 'аналитика', 'DevOps', 'SaaS', 'библиотека', 'data engineering', 'AI', 'observability', 'базы данных', 'тестирование', 'автотесты', 'нагрузочные тесты', 'безопасность', 'очереди', 'desktop', 'прочее'],
+    enum: TECH_RADAR_SUBTYPES,
     nullable: true,
   })
   subtype?: string;
 
-  @Column('enum', {
-    enum: ['adopt', 'trial', 'assess', 'hold', 'drop'],
-  })
+  @Column('enum', { enum: TECH_RADAR_CATEGORIES })
   category!: string;
 
   @Column('text', { nullable: true })
@@ -48,14 +59,10 @@ export class TechRadarEntity {
   @Column('simple-json', { nullable: true })
   dependencies?: Array<{ name: string; version: string; optional?: boolean }>;
 
-  @Column('enum', {
-    enum: ['experimental', 'active', 'stable', 'deprecated', 'end-of-life'],
-  })
+  @Column('enum', { enum: TECH_RADAR_MATURITY })
   maturity!: string;
 
-  @Column('enum', {
-    enum: ['low', 'medium', 'high', 'critical'],
-  })
+  @Column('enum', { enum: TECH_RADAR_RISK_LEVEL })
   riskLevel!: string;
 
   @Column('varchar')
@@ -82,25 +89,23 @@ export class TechRadarEntity {
   @Column('date', { nullable: true })
   endOfLifeDate?: string;
 
-  @Column('enum', {
-    enum: ['active', 'limited', 'end-of-life', 'community-only'],
-  })
+  @Column('enum', { enum: TECH_RADAR_SUPPORT_STATUS })
   supportStatus!: string;
 
   @Column('text', { nullable: true })
   upgradePath?: string;
 
   @Column('enum', {
-    enum: ['low', 'medium', 'high'],
+    enum: TECH_RADAR_PERFORMANCE_IMPACT,
     nullable: true,
   })
   performanceImpact?: string;
 
   @Column('simple-json', { nullable: true })
   resourceRequirements?: {
-    cpu: 'низкие' | 'средние' | 'высокие' | 'очень высокие';
-    memory: 'низкие' | 'средние' | 'высокие' | 'очень высокие';
-    storage: 'минимальные' | 'низкие' | 'средние' | 'высокие';
+    cpu: typeof TECH_RADAR_CPU[number];
+    memory: typeof TECH_RADAR_MEMORY[number];
+    storage: typeof TECH_RADAR_STORAGE[number];
   };
 
   @Column('simple-array', { nullable: true })
@@ -113,7 +118,7 @@ export class TechRadarEntity {
   communitySize?: number;
 
   @Column('enum', {
-    enum: ['frequent', 'regular', 'occasional', 'rare', 'none'],
+    enum: TECH_RADAR_CONTRIBUTION_FREQUENCY,
     nullable: true,
   })
   contributionFrequency?: string;
@@ -129,7 +134,7 @@ export class TechRadarEntity {
   };
 
   @Column('enum', {
-    enum: ['free', 'paid', 'subscription', 'enterprise'],
+    enum: TECH_RADAR_COST_FACTOR,
     nullable: true,
   })
   costFactor?: string;
@@ -137,9 +142,7 @@ export class TechRadarEntity {
   @Column('boolean', { default: false })
   vendorLockIn!: boolean;
 
-  @Column('enum', {
-    enum: ['low', 'medium', 'high', 'critical'],
-  })
+  @Column('enum', { enum: TECH_RADAR_BUSINESS_CRITICALITY })
   businessCriticality!: string;
 
   @CreateDateColumn()

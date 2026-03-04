@@ -1,29 +1,51 @@
 import 'reflect-metadata';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yaml';
 import bcrypt from 'bcryptjs';
+import * as fs from 'fs';
+import * as path from 'path';
 import { config } from './config';
-import { techRadarRoutes, authRoutes, importRoutes, versionRoutes } from './routes';
+import { techRadarRoutes, authRoutes, importRoutes, versionRoutes, auditRoutes } from './routes';
 import { AppDataSource } from './database';
+import { enforceHttps, setSecureHeaders, errorHandler } from './middleware';
+import { HttpException } from './exceptions';
+import { logger } from './utils/logger';
+
+let server: any;
 
 async function bootstrap() {
   const app = express();
+
+  // Security headers (Helmet)
+  app.use(helmet({
+    contentSecurityPolicy: false, // Отключено для совместимости
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  // HTTPS middleware (только для production)
+  app.use(enforceHttps);
+  app.use(setSecureHeaders);
+
+  logger.info('Запуск сервера...');
 
   // Инициализация базы данных (если используется)
   if (config.dbMode === 'database') {
     try {
       await AppDataSource.initialize();
-      console.log('База данных подключена');
+      logger.info('База данных подключена');
 
       // Автоматический seed пользователей
       await seedUsers();
-      console.log('Seed пользователей завершен');
+      logger.info('Seed пользователей завершен');
     } catch (error: any) {
-      console.error('Ошибка подключения к БД:', error?.message || error);
-      console.log('Запуск без базы данных');
+      logger.error('Ошибка подключения к БД:', { error: error?.message || error });
+      logger.info('Запуск без базы данных');
     }
   } else {
-    console.log('Режим работы: mock данные');
+    logger.info('Режим работы: mock данные');
   }
 
   // Middleware
@@ -39,27 +61,85 @@ async function bootstrap() {
   app.use('/api/auth', authRoutes);
   app.use('/api/import', importRoutes);
   app.use('/api/version', versionRoutes);
+  app.use('/api/audit', auditRoutes);
+
+  // Swagger API documentation (только для development)
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      const openapiPath = path.resolve(__dirname, '../../openapi.yaml');
+      const openapi = YAML.parse(fs.readFileSync(openapiPath, 'utf8'));
+      app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi));
+    } catch (error) {
+      logger.warn('Не удалось загрузить Swagger документацию:', error);
+    }
+  }
 
   // Health check
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', dbMode: config.dbMode });
   });
 
+  // 404 для не найденных маршрутов
+  app.use((req, res) => {
+    res.status(404).json({
+      status: 404,
+      message: `Маршрут не найден: ${req.method} ${req.originalUrl}`,
+    });
+  });
+
+  // Глобальный обработчик ошибок (должен быть последним)
+  app.use(errorHandler);
+
   // Start server
-  app.listen(config.port, () => {
-    console.log(`Сервер запущен на порту ${config.port}`);
-    console.log(`Режим БД: ${config.dbMode}`);
-    console.log(`Frontend URL: ${config.frontendUrl}`);
-    console.log('');
-    console.log('Учетные записи (по умолчанию):');
-    console.log('  Admin: admin@techradar.local / password123');
-    console.log('  User:  user@techradar.local / password123');
-    console.log('');
-    console.log('Для создания пользователей выполните: npm run seed');
+  const server = app.listen(config.port, () => {
+    logger.info(`Сервер запущен на порту ${config.port}`);
+    logger.info(`Режим БД: ${config.dbMode}`);
+    logger.info(`Frontend URL: ${config.frontendUrl}`);
+    logger.info('Учетные записи (по умолчанию):');
+    logger.info('  Admin: admin@techradar.local / password123');
+    logger.info('  User:  user@techradar.local / password123');
+    logger.info('Для создания пользователей выполните: npm run seed');
   });
 }
 
-bootstrap().catch(console.error);
+bootstrap().catch((error) => {
+  logger.error('Критическая ошибка при запуске:', { error });
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('Получен сигнал SIGTERM, завершение работы...');
+  await gracefulShutdown();
+});
+
+process.on('SIGINT', async () => {
+  logger.info('Получен сигнал SIGINT, завершение работы...');
+  await gracefulShutdown();
+});
+
+async function gracefulShutdown() {
+  logger.info('Закрытие HTTP сервера...');
+  
+  // Закрытие HTTP сервера
+  if (server) {
+    await new Promise<void>((resolve) => {
+      server.close(() => {
+        logger.info('HTTP сервер закрыт');
+        resolve();
+      });
+    });
+  }
+  
+  // Закрытие соединения с БД
+  if (AppDataSource.isInitialized) {
+    logger.info('Закрытие соединения с БД...');
+    await AppDataSource.destroy();
+  }
+  
+  logger.info('Сервер остановлен');
+  process.exit(0);
+}
 
 // Автоматический seed пользователей
 async function seedUsers() {
@@ -73,7 +153,7 @@ async function seedUsers() {
     const existingUser = await userRepository.findOne({ where: { email: 'user@techradar.local' } });
 
     if (existingAdmin && existingUser) {
-      console.log('Пользователи уже существуют');
+      logger.info('Пользователи уже существуют');
       return;
     }
 
@@ -89,7 +169,7 @@ async function seedUsers() {
         isActive: true,
       });
       await userRepository.save(admin);
-      console.log('Создан администратор: admin@techradar.local');
+      logger.info('Создан администратор: admin@techradar.local');
     }
 
     if (!existingUser) {
@@ -102,14 +182,14 @@ async function seedUsers() {
         isActive: true,
       });
       await userRepository.save(user);
-      console.log('Создан пользователь: user@techradar.local');
+      logger.info('Создан пользователь: user@techradar.local');
     }
   } catch (error: any) {
     // Игнорируем ошибку если таблица ещё не создана
     if (error?.message?.includes('relation') || error?.message?.includes('table')) {
-      console.log('Таблица пользователей будет создана автоматически');
+      logger.info('Таблица пользователей будет создана автоматически');
     } else {
-      console.error('Ошибка при seed пользователей:', error?.message || error);
+      logger.error('Ошибка при seed пользователей:', { error: error?.message || error });
     }
   }
 }

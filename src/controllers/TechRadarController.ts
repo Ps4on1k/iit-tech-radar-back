@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { config } from '../config';
-import { MockTechRadarRepository, DatabaseTechRadarRepository, TechRadarValidationService } from '../services';
+import { MockTechRadarRepository, DatabaseTechRadarRepository, TechRadarValidationService, ITechRadarRepository, auditService } from '../services';
 import { AppDataSource } from '../database';
 import { TechRadarEntity } from '../models';
 
-let techRadarRepo: MockTechRadarRepository | DatabaseTechRadarRepository;
+let techRadarRepo: ITechRadarRepository;
 let validationService: TechRadarValidationService;
 
 if (config.dbMode === 'database') {
@@ -153,6 +153,13 @@ export class TechRadarController {
       // Валидация схемы
       const validationResult = validationService.validate(entity, false);
       if (!validationResult.valid) {
+        await auditService.logFailure({
+          userId: authReq.user?.id,
+          action: 'CREATE',
+          entity: 'TechRadar',
+          ipAddress: req.ip,
+          details: { error: 'Validation failed', validationErrors: validationResult.errors },
+        });
         res.status(400).json({
           error: 'Ошибка валидации данных',
           details: validationResult.errors,
@@ -161,8 +168,26 @@ export class TechRadarController {
       }
 
       const saved = await techRadarRepo.save(entity as TechRadarEntity);
+      
+      await auditService.logSuccess({
+        userId: authReq.user.id,
+        action: 'CREATE',
+        entity: 'TechRadar',
+        entityId: saved.id,
+        ipAddress: req.ip,
+        details: { name: saved.name, version: saved.version },
+      });
+      
       res.status(201).json(saved);
     } catch (error: any) {
+      const authReq = req as any;
+      await auditService.logFailure({
+        userId: authReq.user?.id,
+        action: 'CREATE',
+        entity: 'TechRadar',
+        ipAddress: req.ip,
+        details: { error: error.message },
+      });
       res.status(500).json({ error: `Ошибка при создании записи: ${error.message}` });
     }
   };
@@ -181,6 +206,14 @@ export class TechRadarController {
       // Проверка существования записи
       const existing = await techRadarRepo.findById(id);
       if (!existing) {
+        await auditService.logFailure({
+          userId: authReq.user.id,
+          action: 'UPDATE',
+          entity: 'TechRadar',
+          entityId: id,
+          ipAddress: req.ip,
+          details: { error: 'Not found' },
+        });
         res.status(404).json({ error: 'Технология не найдена' });
         return;
       }
@@ -188,6 +221,14 @@ export class TechRadarController {
       // Валидация схемы (isUpdate=true для частичной валидации)
       const validationResult = validationService.validate(updateData, true);
       if (!validationResult.valid) {
+        await auditService.logFailure({
+          userId: authReq.user.id,
+          action: 'UPDATE',
+          entity: 'TechRadar',
+          entityId: id,
+          ipAddress: req.ip,
+          details: { error: 'Validation failed', validationErrors: validationResult.errors },
+        });
         res.status(400).json({
           error: 'Ошибка валидации данных',
           details: validationResult.errors,
@@ -203,8 +244,26 @@ export class TechRadarController {
 
       const entity: TechRadarEntity = { ...existing, ...updateData, id } as TechRadarEntity;
       const updated = await techRadarRepo.save(entity);
+      
+      await auditService.logSuccess({
+        userId: authReq.user.id,
+        action: 'UPDATE',
+        entity: 'TechRadar',
+        entityId: updated.id,
+        ipAddress: req.ip,
+        details: { name: updated.name, version: updated.version, changes: Object.keys(updateData) },
+      });
+      
       res.json(updated);
     } catch (error: any) {
+      const authReq = req as any;
+      await auditService.logFailure({
+        userId: authReq.user?.id,
+        action: 'UPDATE',
+        entity: 'TechRadar',
+        ipAddress: req.ip,
+        details: { error: error.message },
+      });
       res.status(500).json({ error: `Ошибка при обновлении записи: ${error.message}` });
     }
   };
@@ -218,15 +277,44 @@ export class TechRadarController {
       }
 
       const id = String(req.params.id);
+      
+      // Получаем запись для логирования
+      const existing = await techRadarRepo.findById(id);
+      
       const deleted = await techRadarRepo.delete(id);
 
       if (!deleted) {
+        await auditService.logFailure({
+          userId: authReq.user.id,
+          action: 'DELETE',
+          entity: 'TechRadar',
+          entityId: id,
+          ipAddress: req.ip,
+          details: { error: 'Not found' },
+        });
         res.status(404).json({ error: 'Технология не найдена' });
         return;
       }
 
+      await auditService.logSuccess({
+        userId: authReq.user.id,
+        action: 'DELETE',
+        entity: 'TechRadar',
+        entityId: id,
+        ipAddress: req.ip,
+        details: { name: existing?.name, version: existing?.version },
+      });
+
       res.status(204).send();
     } catch (error) {
+      const authReq = req as any;
+      await auditService.logFailure({
+        userId: authReq.user?.id,
+        action: 'DELETE',
+        entity: 'TechRadar',
+        ipAddress: req.ip,
+        details: { error: error },
+      });
       res.status(500).json({ error: 'Ошибка при удалении записи' });
     }
   };

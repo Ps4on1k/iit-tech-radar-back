@@ -1,3 +1,8 @@
+// Установка переменных окружения для тестов
+process.env.JWT_SECRET = 'test-secret';
+process.env.PORT = '5000';
+process.env.DB_MODE = 'mock';
+
 // Mock для bcrypt
 jest.mock('bcryptjs', () => ({
   hashSync: jest.fn((str: string) => `hashed_${str}`),

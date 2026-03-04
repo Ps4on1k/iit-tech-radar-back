@@ -17,7 +17,11 @@ export const AppDataSource = new DataSource({
   logging: isDevelopment,
   // В dev режиме используем ts-node с явными импортами, в production - compiled JS
   entities: isDevelopment
-    ? [require('../models/User').User, require('../models/TechRadarEntity').TechRadarEntity]
+    ? [
+        require('../models/User').User,
+        require('../models/TechRadarEntity').TechRadarEntity,
+        require('../models/AuditLogEntity').AuditLogEntity,
+      ]
     : [__dirname + '/../models/*.js'],
   migrations: isDevelopment
     ? [__dirname + '/migrations/*.ts']

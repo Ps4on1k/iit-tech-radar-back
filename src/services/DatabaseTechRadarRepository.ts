@@ -1,7 +1,8 @@
 import { Repository, DeleteResult } from 'typeorm';
 import { TechRadarEntity } from '../models';
+import { ITechRadarRepository } from './ITechRadarRepository';
 
-export class DatabaseTechRadarRepository {
+export class DatabaseTechRadarRepository implements ITechRadarRepository {
   private repository: Repository<TechRadarEntity>;
 
   constructor(repository: Repository<TechRadarEntity>) {
