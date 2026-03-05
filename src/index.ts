@@ -16,6 +16,49 @@ import { logger } from './utils/logger';
 
 let server: any;
 
+/**
+ * Применяет миграцию для изменения типа полей adoptionRate и popularityIndex
+ * с numeric(2,2) на numeric(5,4) для поддержки значений > 1.0
+ */
+async function applyNumericMigration() {
+  try {
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+
+    // Проверяем текущий тип данных
+    const result = await queryRunner.query(`
+      SELECT column_name, numeric_precision, numeric_scale 
+      FROM information_schema.columns 
+      WHERE table_name = 'tech_radar' 
+      AND column_name IN ('adoptionRate', 'popularityIndex')
+    `);
+
+    const needsMigration = result.some((row: any) => 
+      row.numeric_precision !== 5 || row.numeric_scale !== 4
+    );
+
+    if (needsMigration) {
+      logger.info('Применение миграции: изменение типа adoptionRate и popularityIndex на numeric(5,4)');
+      await queryRunner.query(`
+        ALTER TABLE "tech_radar" 
+        ALTER COLUMN "adoptionRate" TYPE numeric(5,4)
+      `);
+      await queryRunner.query(`
+        ALTER TABLE "tech_radar" 
+        ALTER COLUMN "popularityIndex" TYPE numeric(5,4)
+      `);
+      logger.info('Миграция успешно применена');
+    } else {
+      logger.info('Миграция уже применена: поля имеют правильный тип numeric(5,4)');
+    }
+
+    await queryRunner.release();
+  } catch (error: any) {
+    logger.error('Ошибка применения миграции:', { error: error?.message || error });
+    // Не прерываем запуск сервера из-за ошибки миграции
+  }
+}
+
 async function bootstrap() {
   const app = express();
 
@@ -36,6 +79,9 @@ async function bootstrap() {
     try {
       await AppDataSource.initialize();
       logger.info('База данных подключена');
+
+      // Применяем миграцию для полей adoptionRate и popularityIndex
+      await applyNumericMigration();
 
       // Автоматический seed пользователей
       await seedUsers();

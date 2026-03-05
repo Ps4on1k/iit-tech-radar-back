@@ -15,7 +15,8 @@
     "migration:run": "typeorm-ts-node-commonjs migration:run -d typeorm.config.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d typeorm.config.ts",
     "migration:show": "typeorm-ts-node-commonjs migration:show -d typeorm.config.ts",
-    "seed": "ts-node src/database/seed.ts"
+    "seed": "ts-node src/database/seed.ts",
+    "migrate:numeric": "node scripts/apply-numeric-migration.js"
   },
   "keywords": [
     "tech-radar",

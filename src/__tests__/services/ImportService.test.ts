@@ -60,6 +60,8 @@ describe('ImportService', () => {
     (mockRepository.manager.connection.createQueryRunner as jest.Mock).mockReturnValue(
       mockQueryRunner
     );
+    // Сбрасываем findOne на возврат null по умолчанию
+    mockQueryRunner.manager.findOne.mockResolvedValue(null);
   });
 
   describe('importTechRadar - валидация входных данных', () => {
@@ -80,13 +82,34 @@ describe('ImportService', () => {
   });
 
   describe('importTechRadar - валидация сущностей', () => {
-    it('должен возвращать ошибку при отсутствии обязательного поля id', async () => {
+    it('должен возвращать ошибку при отсутствии обязательного поля id для skipExisting', async () => {
       const invalidData = [{ ...mockEntity, id: undefined }];
 
-      const result = await importService.importTechRadar(invalidData as any);
+      const result = await importService.importTechRadar(invalidData as any, { skipExisting: true });
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors.some(e => e.message.includes('id'))).toBe(true);
+    });
+
+    it('должен возвращать ошибку при отсутствии обязательного поля id для updateExisting', async () => {
+      const invalidData = [{ ...mockEntity, id: undefined }];
+
+      const result = await importService.importTechRadar(invalidData as any, { updateExisting: true });
+
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors.some(e => e.message.includes('id'))).toBe(true);
+    });
+
+    it('должен проходить валидацию без id для новых записей', async () => {
+      const validData = [{ ...mockEntity, id: undefined }];
+
+      mockQueryRunner.manager.findOne.mockResolvedValueOnce(null);
+      mockQueryRunner.manager.save.mockResolvedValueOnce({ ...validData[0], id: 'generated-uuid' });
+
+      const result = await importService.importTechRadar(validData as any);
+
+      expect(result.success).toBe(true);
+      expect(result.imported).toBe(1);
     });
 
     it('должен возвращать ошибку при отсутствии обязательного поля name', async () => {
@@ -189,18 +212,21 @@ describe('ImportService', () => {
 
   describe('importTechRadar - опции импорта', () => {
     it('должен пропускать существующие записи при skipExisting=true', async () => {
-      mockQueryRunner.manager.findOne.mockResolvedValueOnce(mockEntity);
+      // findOne возвращает существующую запись вместо null
+      mockQueryRunner.manager.findOne.mockResolvedValue(mockEntity);
 
       const result = await importService.importTechRadar([mockEntity], { skipExisting: true });
 
       expect(result.success).toBe(true);
       expect(result.skipped).toBe(1);
       expect(result.imported).toBe(0);
+      expect(result.errors).toHaveLength(0);
     });
 
     it('должен обновлять существующие записи при updateExisting=true', async () => {
-      mockQueryRunner.manager.findOne.mockResolvedValueOnce(mockEntity);
-      mockQueryRunner.manager.update.mockResolvedValueOnce({} as any);
+      // findOne возвращает существующую запись
+      mockQueryRunner.manager.findOne.mockResolvedValue(mockEntity);
+      mockQueryRunner.manager.update.mockResolvedValue({} as any);
 
       const result = await importService.importTechRadar([mockEntity], { updateExisting: true });
 
@@ -209,14 +235,16 @@ describe('ImportService', () => {
       expect(mockQueryRunner.manager.update).toHaveBeenCalled();
     });
 
-    it('должен возвращать ошибку при конфликте ID если не указаны skipExisting или updateExisting', async () => {
-      mockQueryRunner.manager.findOne.mockResolvedValueOnce(mockEntity);
+    it('должен создавать новую запись если ID существует но не указаны skipExisting/updateExisting', async () => {
+      // findOne возвращает существующую запись
+      mockQueryRunner.manager.findOne.mockResolvedValue(mockEntity);
+      mockQueryRunner.manager.save.mockResolvedValue({ ...mockEntity, id: 'new-uuid' });
 
       const result = await importService.importTechRadar([mockEntity], { skipExisting: false, updateExisting: false });
 
-      expect(result.success).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some(e => e.message.includes('уже существует'))).toBe(true);
+      // Новая запись создаётся с новым ID
+      expect(result.success).toBe(true);
+      expect(result.imported).toBe(1);
     });
   });
 

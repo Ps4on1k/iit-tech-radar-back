@@ -40,10 +40,18 @@ export class ImportService {
 
   /**
    * Валидация одной сущности TechRadar
+   * @param entity - сущность для валидации
+   * @param index - индекс в массиве
+   * @param requireId - требовать ли поле id (true для update/skip, false для create)
    */
-  private validateEntity(entity: any, index: number): ImportError | null {
+  private validateEntity(entity: any, index: number, requireId: boolean = false): ImportError | null {
     // Проверка обязательных полей
-    const requiredFields = ['id', 'name', 'version', 'type', 'category', 'firstAdded', 'owner', 'maturity', 'riskLevel', 'license', 'supportStatus', 'businessCriticality'];
+    const requiredFields: string[] = ['name', 'version', 'type', 'category', 'firstAdded', 'owner', 'maturity', 'riskLevel', 'license', 'supportStatus', 'businessCriticality'];
+    
+    if (requireId) {
+      requiredFields.unshift('id');
+    }
+    
     for (const field of requiredFields) {
       if (entity[field] === undefined || entity[field] === null || entity[field] === '') {
         return {
@@ -54,8 +62,8 @@ export class ImportService {
       }
     }
 
-    // Проверка типов данных
-    if (typeof entity.id !== 'string') {
+    // Проверка типов данных (только если поле указано)
+    if (entity.id !== undefined && entity.id !== null && typeof entity.id !== 'string') {
       return { index, id: entity.id, message: 'Поле id должно быть строкой' };
     }
     if (typeof entity.name !== 'string') {
@@ -199,13 +207,14 @@ export class ImportService {
   /**
    * Импорт технологий из JSON массива
    * Использует параметризованные запросы TypeORM для защиты от SQL инъекций
-   * 
+   *
    * Опции:
    * - skipExisting: true - пропускать существующие записи (по ID)
    * - updateExisting: true - обновлять существующие записи (по ID)
-   * - если обе false (по умолчанию) - ошибка при конфликте ID
+   * - overwrite: true - удалить все записи и создать новые (ID не требуется)
+   * - если все false (по умолчанию) - создаются новые записи с генерацией ID
    */
-  async importTechRadar(data: any[], options?: { skipExisting?: boolean; updateExisting?: boolean }): Promise<ImportResult> {
+  async importTechRadar(data: any[], options?: { skipExisting?: boolean; updateExisting?: boolean; overwrite?: boolean }): Promise<ImportResult> {
     const result: ImportResult = {
       success: true,
       imported: 0,
@@ -228,22 +237,26 @@ export class ImportService {
 
     const skipExisting = options?.skipExisting ?? false;
     const updateExisting = options?.updateExisting ?? false;
+    const overwrite = options?.overwrite ?? false;
+
+    // Режим, требующий ID: если указан skipExisting или updateExisting
+    const requireId = skipExisting || updateExisting;
 
     // Предварительная валидация всех записей
     for (let i = 0; i < data.length; i++) {
-      const error = this.validateEntity(data[i], i);
+      const error = this.validateEntity(data[i], i, requireId);
       if (error) {
         result.errors.push(error);
       }
     }
 
     // Если есть критические ошибки валидации, прерываем импорт
-    const hasCriticalErrors = result.errors.some(e => 
-      e.message.includes('должно быть массивом') || 
+    const hasCriticalErrors = result.errors.some(e =>
+      e.message.includes('должно быть массивом') ||
       e.message.includes('должно быть объектом') ||
       e.message.includes('Отсутствует обязательное поле')
     );
-    
+
     if (hasCriticalErrors) {
       result.success = false;
       return result;
@@ -255,6 +268,18 @@ export class ImportService {
     await queryRunner.startTransaction();
 
     try {
+      // Режим overwrite: удаляем все записи перед импортом
+      // Используем raw query для удаления всех записей с учетом внешних ключей
+      if (overwrite) {
+        // Сначала удаляем связанные записи из-за внешних ключей
+        await queryRunner.query('DELETE FROM "tech_radar_history"');
+        await queryRunner.query('DELETE FROM "tech_radar_reviews"');
+        await queryRunner.query('DELETE FROM "tech_radar_tags"');
+        await queryRunner.query('DELETE FROM "tech_radar_attachments"');
+        // Затем удаляем основные записи
+        await queryRunner.query('DELETE FROM "tech_radar"');
+      }
+
       for (let i = 0; i < data.length; i++) {
         const entity = data[i];
 
@@ -265,12 +290,15 @@ export class ImportService {
         }
 
         try {
-          // Проверяем существование записи по ID
-          const existing = await queryRunner.manager.findOne(TechRadarEntity, {
-            where: { id: entity.id },
-          });
+          // Проверяем существование записи по ID (только если id указан и не overwrite)
+          let existing: TechRadarEntity | null = null;
+          if (!overwrite && entity.id) {
+            existing = await queryRunner.manager.findOne(TechRadarEntity, {
+              where: { id: entity.id },
+            });
+          }
 
-          if (existing) {
+          if (existing && !overwrite) {
             if (skipExisting) {
               // Пропускаем существующую запись
               result.skipped++;
@@ -293,18 +321,13 @@ export class ImportService {
               continue;
             }
 
-            // Если ни skipExisting, ни updateExisting не указаны - ошибка конфликта
-            result.errors.push({
-              index: i,
-              id: entity.id,
-              message: `Запись с ID ${entity.id} уже существует. Укажите skipExisting=true для пропуска или updateExisting=true для обновления.`,
-            });
-            result.skipped++;
-            continue;
+            // Если ни skipExisting, ни updateExisting не указаны - создаём новую запись с новым ID
+            // (старая запись останется, новая создастся с другим ID)
           }
 
           // Создаем новую запись
-          // Исключаем createdAt/updatedAt - они будут установлены автоматически
+          // Если id указан и записи с таким id нет - используем его
+          // Если id не указан - генерируем UUID автоматически
           const { createdAt, updatedAt, ...newData } = entity;
           const techRadarEntity = queryRunner.manager.create(TechRadarEntity, {
             ...newData,
@@ -314,27 +337,34 @@ export class ImportService {
           await queryRunner.manager.save(TechRadarEntity, techRadarEntity);
           result.imported++;
         } catch (error: any) {
-          // Обработка ошибок (например, нарушение уникальности)
+          // Обработка ошибок (например, нарушение уникальности или numeric overflow)
           const isDuplicateError = error.code === '23505' || error.message.includes('duplicate') || error.message.includes('уникальным');
-          
+
           if (isDuplicateError && skipExisting) {
             // Если дубликат и указан skipExisting - пропускаем
             result.skipped++;
             continue;
           }
 
+          // Для режима overwrite или других ошибок - продолжаем импорт остальных записей
           result.errors.push({
             index: i,
             id: entity.id,
             message: error.message || 'Ошибка при сохранении записи',
           });
+          // Не прерываем цикл, продолжаем импорт остальных записей
         }
       }
 
-      // Если были ошибки при импорте (но не критические), откатываем транзакцию
-      if (result.errors.length > 0) {
+      // Если были ошибки при импорте - откатываем транзакцию только если это не overwrite
+      // Для overwrite мы хотим сохранить хотя бы часть записей
+      if (result.errors.length > 0 && !overwrite) {
         await queryRunner.rollbackTransaction();
         result.success = false;
+      } else if (result.errors.length > 0 && overwrite) {
+        // Для overwrite коммитим успешные записи
+        await queryRunner.commitTransaction();
+        result.success = false; // Но помечаем как неудачу из-за ошибок
       } else {
         await queryRunner.commitTransaction();
       }
