@@ -184,6 +184,93 @@ describe('TechRadarValidationService', () => {
       expect(result.valid).toBe(true);
     });
 
+    it('должен проходить валидацию если adoptionRate не указано (undefined)', () => {
+      const entity = { ...createValidEntity(), adoptionRate: undefined };
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors.some(e => e.field === 'adoptionRate')).toBe(false);
+    });
+
+    it('должен проходить валидацию если adoptionRate равно null', () => {
+      const entity = { ...createValidEntity(), adoptionRate: null } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors.some(e => e.field === 'adoptionRate')).toBe(false);
+    });
+
+    it('должен проходить валидацию если adoptionRate - пустая строка', () => {
+      const entity = { ...createValidEntity(), adoptionRate: '' } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors.some(e => e.field === 'adoptionRate')).toBe(false);
+    });
+
+    it('должен возвращать ошибку если adoptionRate не число', () => {
+      const entity = { ...createValidEntity(), adoptionRate: '0.5' } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.field === 'adoptionRate')).toBe(true);
+    });
+
+    it('должен возвращать ошибку если popularityIndex < 0', () => {
+      const entity = { ...createValidEntity(), popularityIndex: -0.1 };
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.field === 'popularityIndex')).toBe(true);
+    });
+
+    it('должен возвращать ошибку если popularityIndex > 1', () => {
+      const entity = { ...createValidEntity(), popularityIndex: 1.1 };
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.field === 'popularityIndex')).toBe(true);
+    });
+
+    it('должен проходить валидацию для popularityIndex в диапазоне [0, 1]', () => {
+      const entity = { ...createValidEntity(), popularityIndex: 0.5 };
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('должен проходить валидацию если popularityIndex не указано (undefined)', () => {
+      const entity = { ...createValidEntity(), popularityIndex: undefined };
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors.some(e => e.field === 'popularityIndex')).toBe(false);
+    });
+
+    it('должен проходить валидацию если popularityIndex равно null', () => {
+      const entity = { ...createValidEntity(), popularityIndex: null } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors.some(e => e.field === 'popularityIndex')).toBe(false);
+    });
+
+    it('должен проходить валидацию если popularityIndex - пустая строка', () => {
+      const entity = { ...createValidEntity(), popularityIndex: '' } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors.some(e => e.field === 'popularityIndex')).toBe(false);
+    });
+
+    it('должен возвращать ошибку если popularityIndex не число', () => {
+      const entity = { ...createValidEntity(), popularityIndex: '0.5' } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.field === 'popularityIndex')).toBe(true);
+    });
+
     it('должен возвращать ошибку если communitySize < 0', () => {
       const entity = { ...createValidEntity(), communitySize: -100 };
       const result = validationService.validate(entity, true);
@@ -354,6 +441,103 @@ describe('TechRadarValidationService', () => {
       const result = validationService.validate(entity, true);
 
       expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('validate - versionToUpdate', () => {
+    it('должен проходить валидацию для корректной versionToUpdate', () => {
+      const entity = {
+        ...createValidEntity(),
+        versionToUpdate: '2.0.0',
+      };
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('должен проходить валидацию если versionToUpdate не указано', () => {
+      const entity = {
+        ...createValidEntity(),
+        versionToUpdate: undefined,
+      };
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('должен проходить валидацию если versionToUpdate равно null', () => {
+      const entity = {
+        ...createValidEntity(),
+        versionToUpdate: null,
+      } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('должен возвращать ошибку если versionToUpdate не строка', () => {
+      const entity = {
+        ...createValidEntity(),
+        versionToUpdate: 123,
+      } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.field === 'versionToUpdate')).toBe(true);
+    });
+  });
+
+  describe('validate - versionUpdateDeadline', () => {
+    it('должен проходить валидацию для корректного формата даты', () => {
+      const entity = {
+        ...createValidEntity(),
+        versionUpdateDeadline: '2024-12-31',
+      };
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('должен проходить валидацию если versionUpdateDeadline не указано', () => {
+      const entity = {
+        ...createValidEntity(),
+        versionUpdateDeadline: undefined,
+      };
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('должен проходить валидацию если versionUpdateDeadline равно null', () => {
+      const entity = {
+        ...createValidEntity(),
+        versionUpdateDeadline: null,
+      } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('должен возвращать ошибку для некорректного формата даты', () => {
+      const entity = {
+        ...createValidEntity(),
+        versionUpdateDeadline: '2024/12/31',
+      } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.field === 'versionUpdateDeadline')).toBe(true);
+    });
+
+    it('должен возвращать ошибку если versionUpdateDeadline не строка', () => {
+      const entity = {
+        ...createValidEntity(),
+        versionUpdateDeadline: 1234567890,
+      } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.field === 'versionUpdateDeadline')).toBe(true);
     });
   });
 

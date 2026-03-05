@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { config } from '../config';
-import { MockTechRadarRepository, DatabaseTechRadarRepository, TechRadarValidationService, ITechRadarRepository, auditService } from '../services';
+import { MockTechRadarRepository, DatabaseTechRadarRepository, TechRadarValidationService, ITechRadarRepository, auditService, relatedTechRadarService } from '../services';
 import { AppDataSource } from '../database';
 import { TechRadarEntity } from '../models';
 
@@ -61,6 +61,11 @@ export class TechRadarController {
       const search = query.search;
       const sortBy = query.sortBy;
       const sortOrder = query.sortOrder;
+      
+      // Pagination parameters
+      const page = query.page ? parseInt(query.page as string, 10) : 1;
+      const limit = query.limit ? parseInt(query.limit as string, 10) : 100;
+      const offset = (page - 1) * limit;
 
       if (category && typeof category === 'string') filters.category = category;
       if (type && typeof type === 'string') filters.type = type;
@@ -89,7 +94,22 @@ export class TechRadarController {
         });
       }
 
-      res.json(data);
+      // Apply pagination
+      const totalItems = data.length;
+      const paginatedData = data.slice(offset, offset + limit);
+      const totalPages = Math.ceil(totalItems / limit);
+
+      res.json({
+        data: paginatedData,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems,
+          itemsPerPage: limit,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      });
     } catch (error) {
       res.status(500).json({ error: 'Ошибка при фильтрации данных' });
     }
@@ -168,7 +188,7 @@ export class TechRadarController {
       }
 
       const saved = await techRadarRepo.save(entity as TechRadarEntity);
-      
+
       await auditService.logSuccess({
         userId: authReq.user.id,
         action: 'CREATE',
@@ -177,7 +197,16 @@ export class TechRadarController {
         ipAddress: req.ip,
         details: { name: saved.name, version: saved.version },
       });
-      
+
+      // Логируем в историю изменений
+      await relatedTechRadarService.logChange({
+        techRadarId: saved.id,
+        userId: authReq.user.id,
+        action: 'CREATE',
+        newValues: { name: saved.name, version: saved.version, type: saved.type, category: saved.category },
+        comment: 'Создание технологии',
+      });
+
       res.status(201).json(saved);
     } catch (error: any) {
       const authReq = req as any;
@@ -244,7 +273,7 @@ export class TechRadarController {
 
       const entity: TechRadarEntity = { ...existing, ...updateData, id } as TechRadarEntity;
       const updated = await techRadarRepo.save(entity);
-      
+
       await auditService.logSuccess({
         userId: authReq.user.id,
         action: 'UPDATE',
@@ -253,7 +282,17 @@ export class TechRadarController {
         ipAddress: req.ip,
         details: { name: updated.name, version: updated.version, changes: Object.keys(updateData) },
       });
-      
+
+      // Логируем в историю изменений
+      await relatedTechRadarService.logChange({
+        techRadarId: updated.id,
+        userId: authReq.user.id,
+        action: 'UPDATE',
+        previousValues: { ...existing },
+        newValues: { ...updated },
+        comment: `Обновление полей: ${Object.keys(updateData).join(', ')}`,
+      });
+
       res.json(updated);
     } catch (error: any) {
       const authReq = req as any;
@@ -303,6 +342,15 @@ export class TechRadarController {
         entityId: id,
         ipAddress: req.ip,
         details: { name: existing?.name, version: existing?.version },
+      });
+
+      // Логируем в историю изменений
+      await relatedTechRadarService.logChange({
+        techRadarId: id,
+        userId: authReq.user.id,
+        action: 'DELETE',
+        previousValues: existing ? { ...existing } : undefined,
+        comment: `Удаление технологии: ${existing?.name}`,
       });
 
       res.status(204).send();

@@ -145,6 +145,12 @@ export class TechRadarEntity {
   @Column('enum', { enum: TECH_RADAR_BUSINESS_CRITICALITY })
   businessCriticality!: string;
 
+  @Column('varchar', { nullable: true })
+  versionToUpdate?: string;
+
+  @Column('date', { nullable: true })
+  versionUpdateDeadline?: string;
+
   @CreateDateColumn()
   createdAt!: Date;
 

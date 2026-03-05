@@ -1,3 +1,8 @@
 export { TechRadarEntity } from './TechRadarEntity';
 export { User } from './User';
 export { AuditLogEntity } from './AuditLogEntity';
+export { TechRadarReviewEntity } from './TechRadarReviewEntity';
+export { TechRadarTagEntity } from './TechRadarTagEntity';
+export { TechRadarAttachmentEntity } from './TechRadarAttachmentEntity';
+export { TechRadarHistoryEntity } from './TechRadarHistoryEntity';
+export { NotificationEntity } from './NotificationEntity';

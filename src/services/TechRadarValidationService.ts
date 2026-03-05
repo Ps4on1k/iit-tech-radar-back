@@ -123,14 +123,16 @@ export class TechRadarValidationService {
       }
     }
 
-    // Валидация числовых полей
-    if (entity.adoptionRate !== undefined && entity.adoptionRate !== null) {
-      if (typeof entity.adoptionRate !== 'number' || entity.adoptionRate < 0 || entity.adoptionRate > 1) {
+    // Валидация числовых полей (проверяем только если значение задано и не пустая строка)
+    const adoptionRate = entity.adoptionRate as number | string | undefined;
+    if (adoptionRate !== undefined && adoptionRate !== null && adoptionRate !== '') {
+      if (typeof adoptionRate !== 'number' || adoptionRate < 0 || adoptionRate > 1) {
         errors.push({ field: 'adoptionRate', message: 'adoptionRate должно быть числом от 0 до 1' });
       }
     }
-    if (entity.popularityIndex !== undefined && entity.popularityIndex !== null) {
-      if (typeof entity.popularityIndex !== 'number' || entity.popularityIndex < 0 || entity.popularityIndex > 1) {
+    const popularityIndex = entity.popularityIndex as number | string | undefined;
+    if (popularityIndex !== undefined && popularityIndex !== null && popularityIndex !== '') {
+      if (typeof popularityIndex !== 'number' || popularityIndex < 0 || popularityIndex > 1) {
         errors.push({ field: 'popularityIndex', message: 'popularityIndex должно быть числом от 0 до 1' });
       }
     }
@@ -183,8 +185,13 @@ export class TechRadarValidationService {
       errors.push({ field: 'vendorLockIn', message: 'vendorLockIn должно быть булевым значением' });
     }
 
+    // Валидация versionToUpdate
+    if (entity.versionToUpdate !== undefined && entity.versionToUpdate !== null && typeof entity.versionToUpdate !== 'string') {
+      errors.push({ field: 'versionToUpdate', message: 'versionToUpdate должно быть строкой' });
+    }
+
     // Валидация дат
-    const dateFields = ['versionReleaseDate', 'firstAdded', 'lastUpdated', 'endOfLifeDate'];
+    const dateFields = ['versionReleaseDate', 'firstAdded', 'lastUpdated', 'endOfLifeDate', 'versionUpdateDeadline'];
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     for (const field of dateFields) {
       const fieldValue = entityAny[field];
