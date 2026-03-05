@@ -316,10 +316,32 @@ export class TechRadarController {
       }
 
       const id = String(req.params.id);
-      
+
       // Получаем запись для логирования
       const existing = await techRadarRepo.findById(id);
-      
+
+      if (!existing) {
+        await auditService.logFailure({
+          userId: authReq.user.id,
+          action: 'DELETE',
+          entity: 'TechRadar',
+          entityId: id,
+          ipAddress: req.ip,
+          details: { error: 'Not found' },
+        });
+        res.status(404).json({ error: 'Технология не найдена' });
+        return;
+      }
+
+      // Логируем в историю изменений ПЕРЕД удалением (чтобы не нарушить FK)
+      await relatedTechRadarService.logChange({
+        techRadarId: id,
+        userId: authReq.user.id,
+        action: 'DELETE',
+        previousValues: { ...existing },
+        comment: `Удаление технологии: ${existing.name}`,
+      });
+
       const deleted = await techRadarRepo.delete(id);
 
       if (!deleted) {
@@ -341,29 +363,20 @@ export class TechRadarController {
         entity: 'TechRadar',
         entityId: id,
         ipAddress: req.ip,
-        details: { name: existing?.name, version: existing?.version },
-      });
-
-      // Логируем в историю изменений
-      await relatedTechRadarService.logChange({
-        techRadarId: id,
-        userId: authReq.user.id,
-        action: 'DELETE',
-        previousValues: existing ? { ...existing } : undefined,
-        comment: `Удаление технологии: ${existing?.name}`,
+        details: { name: existing.name, version: existing.version },
       });
 
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
       const authReq = req as any;
       await auditService.logFailure({
         userId: authReq.user?.id,
         action: 'DELETE',
         entity: 'TechRadar',
         ipAddress: req.ip,
-        details: { error: error },
+        details: { error: error.message },
       });
-      res.status(500).json({ error: 'Ошибка при удалении записи' });
+      res.status(500).json({ error: `Ошибка при удалении записи: ${error.message}` });
     }
   };
 }

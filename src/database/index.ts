@@ -21,6 +21,11 @@ export const AppDataSource = new DataSource({
         require('../models/User').User,
         require('../models/TechRadarEntity').TechRadarEntity,
         require('../models/AuditLogEntity').AuditLogEntity,
+        require('../models/TechRadarHistoryEntity').TechRadarHistoryEntity,
+        require('../models/TechRadarReviewEntity').TechRadarReviewEntity,
+        require('../models/TechRadarTagEntity').TechRadarTagEntity,
+        require('../models/TechRadarAttachmentEntity').TechRadarAttachmentEntity,
+        require('../models/NotificationEntity').NotificationEntity,
       ]
     : [__dirname + '/../models/*.js'],
   migrations: isDevelopment

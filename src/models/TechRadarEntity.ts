@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ValueTransformer } from 'typeorm';
 import {
   TECH_RADAR_TYPES,
   TECH_RADAR_SUBTYPES,
@@ -14,6 +14,16 @@ import {
   TECH_RADAR_MEMORY,
   TECH_RADAR_STORAGE,
 } from '../constants/tech-radar.constants';
+
+// Трансформер для конвертации DECIMAL из строки в число
+const decimalToNumberTransformer: ValueTransformer = {
+  to: (value: number | null | undefined): number | null | undefined => value,
+  from: (value: string | null | undefined): number | null | undefined => {
+    if (value === null || value === undefined || value === '') return undefined;
+    const num = parseFloat(value);
+    return isNaN(num) ? undefined : num;
+  },
+};
 
 @Entity('tech_radar')
 export class TechRadarEntity {
@@ -77,7 +87,7 @@ export class TechRadarEntity {
   @Column('varchar', { nullable: true })
   internalGuideUrl?: string;
 
-  @Column('decimal', { precision: 2, scale: 2, nullable: true })
+  @Column('decimal', { precision: 2, scale: 2, nullable: true, transformer: decimalToNumberTransformer })
   adoptionRate?: number;
 
   @Column('simple-array', { nullable: true })
@@ -123,7 +133,7 @@ export class TechRadarEntity {
   })
   contributionFrequency?: string;
 
-  @Column('decimal', { precision: 2, scale: 2, nullable: true })
+  @Column('decimal', { precision: 2, scale: 2, nullable: true, transformer: decimalToNumberTransformer })
   popularityIndex?: number;
 
   @Column('simple-json', { nullable: true })

@@ -124,15 +124,18 @@ export class TechRadarValidationService {
     }
 
     // Валидация числовых полей (проверяем только если значение задано и не пустая строка)
-    const adoptionRate = entity.adoptionRate as number | string | undefined;
-    if (adoptionRate !== undefined && adoptionRate !== null && adoptionRate !== '') {
-      if (typeof adoptionRate !== 'number' || adoptionRate < 0 || adoptionRate > 1) {
+    // Конвертируем строковые значения в числа (например, из БД DECIMAL может приходить как строка)
+    const adoptionRateValue = entity.adoptionRate as number | string | undefined;
+    if (adoptionRateValue !== undefined && adoptionRateValue !== null && adoptionRateValue !== '') {
+      const adoptionRateNum = typeof adoptionRateValue === 'string' ? parseFloat(adoptionRateValue) : adoptionRateValue;
+      if (typeof adoptionRateNum !== 'number' || isNaN(adoptionRateNum) || adoptionRateNum < 0 || adoptionRateNum > 1) {
         errors.push({ field: 'adoptionRate', message: 'adoptionRate должно быть числом от 0 до 1' });
       }
     }
-    const popularityIndex = entity.popularityIndex as number | string | undefined;
-    if (popularityIndex !== undefined && popularityIndex !== null && popularityIndex !== '') {
-      if (typeof popularityIndex !== 'number' || popularityIndex < 0 || popularityIndex > 1) {
+    const popularityIndexValue = entity.popularityIndex as number | string | undefined;
+    if (popularityIndexValue !== undefined && popularityIndexValue !== null && popularityIndexValue !== '') {
+      const popularityIndexNum = typeof popularityIndexValue === 'string' ? parseFloat(popularityIndexValue) : popularityIndexValue;
+      if (typeof popularityIndexNum !== 'number' || isNaN(popularityIndexNum) || popularityIndexNum < 0 || popularityIndexNum > 1) {
         errors.push({ field: 'popularityIndex', message: 'popularityIndex должно быть числом от 0 до 1' });
       }
     }

@@ -208,8 +208,16 @@ describe('TechRadarValidationService', () => {
       expect(result.errors.some(e => e.field === 'adoptionRate')).toBe(false);
     });
 
-    it('должен возвращать ошибку если adoptionRate не число', () => {
+    it('должен проходить валидацию если adoptionRate - строка с числом', () => {
       const entity = { ...createValidEntity(), adoptionRate: '0.5' } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors.some(e => e.field === 'adoptionRate')).toBe(false);
+    });
+
+    it('должен возвращать ошибку если adoptionRate - невалидная строка', () => {
+      const entity = { ...createValidEntity(), adoptionRate: 'abc' } as any;
       const result = validationService.validate(entity, true);
 
       expect(result.valid).toBe(false);
@@ -263,8 +271,16 @@ describe('TechRadarValidationService', () => {
       expect(result.errors.some(e => e.field === 'popularityIndex')).toBe(false);
     });
 
-    it('должен возвращать ошибку если popularityIndex не число', () => {
+    it('должен проходить валидацию если popularityIndex - строка с числом', () => {
       const entity = { ...createValidEntity(), popularityIndex: '0.5' } as any;
+      const result = validationService.validate(entity, true);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors.some(e => e.field === 'popularityIndex')).toBe(false);
+    });
+
+    it('должен возвращать ошибку если popularityIndex - невалидная строка', () => {
+      const entity = { ...createValidEntity(), popularityIndex: 'abc' } as any;
       const result = validationService.validate(entity, true);
 
       expect(result.valid).toBe(false);

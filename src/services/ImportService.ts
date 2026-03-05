@@ -110,14 +110,16 @@ export class ImportService {
       }
     }
 
-    // Валидация числовых полей
+    // Валидация числовых полей (конвертируем строки в числа для DECIMAL из БД)
     if (entity.adoptionRate !== undefined && entity.adoptionRate !== null) {
-      if (typeof entity.adoptionRate !== 'number' || entity.adoptionRate < 0 || entity.adoptionRate > 1) {
+      const adoptionRateNum = typeof entity.adoptionRate === 'string' ? parseFloat(entity.adoptionRate) : entity.adoptionRate;
+      if (typeof adoptionRateNum !== 'number' || isNaN(adoptionRateNum) || adoptionRateNum < 0 || adoptionRateNum > 1) {
         return { index, id: entity.id, message: 'adoptionRate должно быть числом от 0 до 1' };
       }
     }
     if (entity.popularityIndex !== undefined && entity.popularityIndex !== null) {
-      if (typeof entity.popularityIndex !== 'number' || entity.popularityIndex < 0 || entity.popularityIndex > 1) {
+      const popularityIndexNum = typeof entity.popularityIndex === 'string' ? parseFloat(entity.popularityIndex) : entity.popularityIndex;
+      if (typeof popularityIndexNum !== 'number' || isNaN(popularityIndexNum) || popularityIndexNum < 0 || popularityIndexNum > 1) {
         return { index, id: entity.id, message: 'popularityIndex должно быть числом от 0 до 1' };
       }
     }
