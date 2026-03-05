@@ -199,6 +199,11 @@ export class ImportService {
   /**
    * Импорт технологий из JSON массива
    * Использует параметризованные запросы TypeORM для защиты от SQL инъекций
+   * 
+   * Опции:
+   * - skipExisting: true - пропускать существующие записи (по ID)
+   * - updateExisting: true - обновлять существующие записи (по ID)
+   * - если обе false (по умолчанию) - ошибка при конфликте ID
    */
   async importTechRadar(data: any[], options?: { skipExisting?: boolean; updateExisting?: boolean }): Promise<ImportResult> {
     const result: ImportResult = {
@@ -217,10 +222,14 @@ export class ImportService {
       };
     }
 
+    if (data.length === 0) {
+      return result;
+    }
+
     const skipExisting = options?.skipExisting ?? false;
     const updateExisting = options?.updateExisting ?? false;
 
-    // Предварительная проверка всех записей
+    // Предварительная валидация всех записей
     for (let i = 0; i < data.length; i++) {
       const error = this.validateEntity(data[i], i);
       if (error) {
@@ -229,7 +238,13 @@ export class ImportService {
     }
 
     // Если есть критические ошибки валидации, прерываем импорт
-    if (result.errors.length > 0 && result.errors.some(e => e.message.includes('должно быть массивом'))) {
+    const hasCriticalErrors = result.errors.some(e => 
+      e.message.includes('должно быть массивом') || 
+      e.message.includes('должно быть объектом') ||
+      e.message.includes('Отсутствует обязательное поле')
+    );
+    
+    if (hasCriticalErrors) {
       result.success = false;
       return result;
     }
@@ -250,30 +265,64 @@ export class ImportService {
         }
 
         try {
-          // Проверяем существование записи
+          // Проверяем существование записи по ID
           const existing = await queryRunner.manager.findOne(TechRadarEntity, {
             where: { id: entity.id },
           });
 
           if (existing) {
             if (skipExisting) {
+              // Пропускаем существующую запись
               result.skipped++;
               continue;
             }
 
             if (updateExisting) {
-              // Обновляем существующую запись (TypeORM использует параметризованные запросы)
-              await queryRunner.manager.update(TechRadarEntity, entity.id, entity);
+              // Обновляем существующую запись
+              // Исключаем системные поля из обновления
+              const { createdAt, updatedAt, ...updateData } = entity;
+              await queryRunner.manager.update(
+                TechRadarEntity,
+                entity.id,
+                {
+                  ...updateData,
+                  updatedAt: new Date(),
+                }
+              );
               result.imported++;
               continue;
             }
+
+            // Если ни skipExisting, ни updateExisting не указаны - ошибка конфликта
+            result.errors.push({
+              index: i,
+              id: entity.id,
+              message: `Запись с ID ${entity.id} уже существует. Укажите skipExisting=true для пропуска или updateExisting=true для обновления.`,
+            });
+            result.skipped++;
+            continue;
           }
 
-          // Создаем новую запись (TypeORM использует параметризованные запросы)
-          const techRadarEntity = queryRunner.manager.create(TechRadarEntity, entity);
+          // Создаем новую запись
+          // Исключаем createdAt/updatedAt - они будут установлены автоматически
+          const { createdAt, updatedAt, ...newData } = entity;
+          const techRadarEntity = queryRunner.manager.create(TechRadarEntity, {
+            ...newData,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
           await queryRunner.manager.save(TechRadarEntity, techRadarEntity);
           result.imported++;
         } catch (error: any) {
+          // Обработка ошибок (например, нарушение уникальности)
+          const isDuplicateError = error.code === '23505' || error.message.includes('duplicate') || error.message.includes('уникальным');
+          
+          if (isDuplicateError && skipExisting) {
+            // Если дубликат и указан skipExisting - пропускаем
+            result.skipped++;
+            continue;
+          }
+
           result.errors.push({
             index: i,
             id: entity.id,
@@ -282,7 +331,13 @@ export class ImportService {
         }
       }
 
-      await queryRunner.commitTransaction();
+      // Если были ошибки при импорте (но не критические), откатываем транзакцию
+      if (result.errors.length > 0) {
+        await queryRunner.rollbackTransaction();
+        result.success = false;
+      } else {
+        await queryRunner.commitTransaction();
+      }
     } catch (error: any) {
       await queryRunner.rollbackTransaction();
       result.success = false;

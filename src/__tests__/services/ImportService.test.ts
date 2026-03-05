@@ -208,6 +208,16 @@ describe('ImportService', () => {
       expect(result.imported).toBe(1);
       expect(mockQueryRunner.manager.update).toHaveBeenCalled();
     });
+
+    it('должен возвращать ошибку при конфликте ID если не указаны skipExisting или updateExisting', async () => {
+      mockQueryRunner.manager.findOne.mockResolvedValueOnce(mockEntity);
+
+      const result = await importService.importTechRadar([mockEntity], { skipExisting: false, updateExisting: false });
+
+      expect(result.success).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors.some(e => e.message.includes('уже существует'))).toBe(true);
+    });
   });
 
   describe('importTechRadar - обработка ошибок', () => {
