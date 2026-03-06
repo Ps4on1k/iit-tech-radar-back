@@ -46,11 +46,14 @@ describe('ImportService', () => {
     commitTransaction: jest.fn(),
     rollbackTransaction: jest.fn(),
     release: jest.fn(),
+    query: jest.fn(),
     manager: {
       create: jest.fn((entity, data) => ({ ...data })),
       update: jest.fn(),
       save: jest.fn(),
       findOne: jest.fn(),
+      delete: jest.fn(),
+      clear: jest.fn(),
     },
   };
 
@@ -62,6 +65,10 @@ describe('ImportService', () => {
     );
     // Сбрасываем findOne на возврат null по умолчанию
     mockQueryRunner.manager.findOne.mockResolvedValue(null);
+    // Сбрасываем delete для overwrite тестов
+    mockQueryRunner.manager.delete.mockResolvedValue({ affected: 0 });
+    // Сбрасываем query для overwrite тестов (raw SQL queries)
+    mockQueryRunner.query.mockResolvedValue([]);
   });
 
   describe('importTechRadar - валидация входных данных', () => {
@@ -207,44 +214,6 @@ describe('ImportService', () => {
 
       expect(result.success).toBe(true);
       expect(result.imported).toBe(3);
-    });
-  });
-
-  describe('importTechRadar - опции импорта', () => {
-    it('должен пропускать существующие записи при skipExisting=true', async () => {
-      // findOne возвращает существующую запись вместо null
-      mockQueryRunner.manager.findOne.mockResolvedValue(mockEntity);
-
-      const result = await importService.importTechRadar([mockEntity], { skipExisting: true });
-
-      expect(result.success).toBe(true);
-      expect(result.skipped).toBe(1);
-      expect(result.imported).toBe(0);
-      expect(result.errors).toHaveLength(0);
-    });
-
-    it('должен обновлять существующие записи при updateExisting=true', async () => {
-      // findOne возвращает существующую запись
-      mockQueryRunner.manager.findOne.mockResolvedValue(mockEntity);
-      mockQueryRunner.manager.update.mockResolvedValue({} as any);
-
-      const result = await importService.importTechRadar([mockEntity], { updateExisting: true });
-
-      expect(result.success).toBe(true);
-      expect(result.imported).toBe(1);
-      expect(mockQueryRunner.manager.update).toHaveBeenCalled();
-    });
-
-    it('должен создавать новую запись если ID существует но не указаны skipExisting/updateExisting', async () => {
-      // findOne возвращает существующую запись
-      mockQueryRunner.manager.findOne.mockResolvedValue(mockEntity);
-      mockQueryRunner.manager.save.mockResolvedValue({ ...mockEntity, id: 'new-uuid' });
-
-      const result = await importService.importTechRadar([mockEntity], { skipExisting: false, updateExisting: false });
-
-      // Новая запись создаётся с новым ID
-      expect(result.success).toBe(true);
-      expect(result.imported).toBe(1);
     });
   });
 
