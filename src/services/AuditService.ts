@@ -38,29 +38,33 @@ export interface PaginatedAuditLogs {
  * Сервис для логирования критических операций
  */
 export class AuditService {
-  private repository: Repository<AuditLogEntity>;
+  private repository: Repository<AuditLogEntity> | null = null;
 
-  constructor() {
-    this.repository = AppDataSource.getRepository(AuditLogEntity);
+  private getRepository(): Repository<AuditLogEntity> {
+    if (!this.repository) {
+      this.repository = AppDataSource.getRepository(AuditLogEntity);
+    }
+    return this.repository;
   }
 
   /**
    * Логирование операции
    */
-  async log(options: AuditLogOptions): Promise<AuditLogEntity> {
-    const auditLog = this.repository.create({
-      userId: options.userId,
-      action: options.action,
-      entity: options.entity,
-      entityId: options.entityId,
-      ipAddress: options.ipAddress,
-      details: options.details ? JSON.stringify(options.details) : undefined,
-      status: options.status,
-    });
-
+  async log(options: AuditLogOptions): Promise<AuditLogEntity | null> {
     try {
-      const saved = await this.repository.save(auditLog);
-      
+      const repository = this.getRepository();
+      const auditLog = repository.create({
+        userId: options.userId,
+        action: options.action,
+        entity: options.entity,
+        entityId: options.entityId,
+        ipAddress: options.ipAddress,
+        details: options.details ? JSON.stringify(options.details) : undefined,
+        status: options.status,
+      });
+
+      const saved = await repository.save(auditLog);
+
       // Логируем в консоль для development
       logger.info(`AUDIT: ${options.action} ${options.entity} by ${options.userId || 'anonymous'} - ${options.status}`, {
         entityId: options.entityId,
@@ -71,23 +75,23 @@ export class AuditService {
     } catch (error) {
       // Если не удалось сохранить в БД, логируем в консоль
       logger.error('Failed to save audit log to database', { error, options });
-      
-      // Возвращаем объект без ID (не сохранённый)
-      return auditLog;
+
+      // Возвращаем null (не сохраняем в БД)
+      return null;
     }
   }
 
   /**
    * Логирование успешной операции
    */
-  async logSuccess(options: Omit<AuditLogOptions, 'status'>): Promise<AuditLogEntity> {
+  async logSuccess(options: Omit<AuditLogOptions, 'status'>): Promise<AuditLogEntity | null> {
     return this.log({ ...options, status: 'SUCCESS' });
   }
 
   /**
    * Логирование неудачной операции
    */
-  async logFailure(options: Omit<AuditLogOptions, 'status'>): Promise<AuditLogEntity> {
+  async logFailure(options: Omit<AuditLogOptions, 'status'>): Promise<AuditLogEntity | null> {
     return this.log({ ...options, status: 'FAILURE' });
   }
 
@@ -95,7 +99,7 @@ export class AuditService {
    * Получить историю операций для сущности
    */
   async getEntityHistory(entity: AuditEntity, entityId: string, limit: number = 50): Promise<AuditLogEntity[]> {
-    return this.repository.find({
+    return this.getRepository().find({
       where: { entity, entityId },
       order: { timestamp: 'DESC' },
       take: limit,
@@ -106,7 +110,7 @@ export class AuditService {
    * Получить историю операций пользователя
    */
   async getUserHistory(userId: string, limit: number = 50): Promise<AuditLogEntity[]> {
-    return this.repository.find({
+    return this.getRepository().find({
       where: { userId },
       order: { timestamp: 'DESC' },
       take: limit,
@@ -117,7 +121,7 @@ export class AuditService {
    * Получить последние операции
    */
   async getRecent(limit: number = 100): Promise<AuditLogEntity[]> {
-    return this.repository.find({
+    return this.getRepository().find({
       order: { timestamp: 'DESC' },
       take: limit,
     });
@@ -131,7 +135,7 @@ export class AuditService {
     page: number = 1,
     limit: number = 20
   ): Promise<PaginatedAuditLogs> {
-    const queryBuilder = this.repository.createQueryBuilder('audit');
+    const queryBuilder = this.getRepository().createQueryBuilder('audit');
     
     // Применяем фильтры
     if (filter.userId) {

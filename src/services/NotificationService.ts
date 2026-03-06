@@ -134,4 +134,30 @@ export class NotificationService {
   }
 }
 
-export const notificationService = new NotificationService();
+// Ленивая инициализация сервиса
+let _notificationService: NotificationService | null = null;
+
+export function getNotificationService(): NotificationService {
+  if (!_notificationService) {
+    _notificationService = new NotificationService();
+  }
+  return _notificationService;
+}
+
+// Для обратной совместимости (но не используем напрямую в контроллерах)
+export const notificationService = {
+  notifyTechRadarChange: async (userId: string, action: 'CREATE' | 'UPDATE' | 'DELETE', techName: string, techId: string) => {
+    try {
+      return await getNotificationService().notifyTechRadarChange(userId, action, techName, techId);
+    } catch (error) {
+      console.error('NotificationService error:', error);
+    }
+  },
+  notifyImport: async (userId: string, success: boolean, imported: number, errors?: string[]) => {
+    try {
+      return await getNotificationService().notifyImport(userId, success, imported, errors);
+    } catch (error) {
+      console.error('NotificationService error:', error);
+    }
+  },
+};

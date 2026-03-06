@@ -20,5 +20,6 @@ export {
 export {
   NotificationService,
   notificationService,
+  getNotificationService,
   type CreateNotificationDto,
 } from './NotificationService';

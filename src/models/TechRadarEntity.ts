@@ -87,7 +87,7 @@ export class TechRadarEntity {
   @Column('varchar', { nullable: true })
   internalGuideUrl?: string;
 
-  @Column('decimal', { precision: 2, scale: 2, nullable: true, transformer: decimalToNumberTransformer })
+  @Column('decimal', { precision: 5, scale: 4, nullable: true, transformer: decimalToNumberTransformer })
   adoptionRate?: number;
 
   @Column('simple-array', { nullable: true })
@@ -133,7 +133,7 @@ export class TechRadarEntity {
   })
   contributionFrequency?: string;
 
-  @Column('decimal', { precision: 2, scale: 2, nullable: true, transformer: decimalToNumberTransformer })
+  @Column('decimal', { precision: 5, scale: 4, nullable: true, transformer: decimalToNumberTransformer })
   popularityIndex?: number;
 
   @Column('simple-json', { nullable: true })

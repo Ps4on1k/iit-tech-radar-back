@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
-import { notificationService } from '../services/NotificationService';
+import { getNotificationService } from '../services/NotificationService';
+
+const notificationService = getNotificationService();
 
 export class NotificationController {
   /**

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ImportService, ImportResult } from '../services/ImportService';
 import { AppDataSource } from '../database';
 import { TechRadarEntity } from '../models/TechRadarEntity';
+import { notificationService } from '../services/NotificationService';
 
 let importService: ImportService;
 
@@ -45,12 +46,28 @@ export class ImportController {
       const result = await service.importTechRadar(data, { skipExisting, updateExisting, overwrite });
 
       if (!result.success) {
+        // Создаем уведомление об ошибке импорта (неблокирующее)
+        const errorMessages = result.errors?.map(e => e.message) || ['Неизвестная ошибка'];
+        notificationService.notifyImport(
+          authReq.user.id,
+          false,
+          result.imported,
+          errorMessages
+        ).catch(err => console.error('Failed to send notification:', err));
+
         res.status(400).json({
           message: 'Импорт завершен с ошибками',
           result,
         });
         return;
       }
+
+      // Создаем уведомление об успешном импорте (неблокирующее)
+      notificationService.notifyImport(
+        authReq.user.id,
+        true,
+        result.imported
+      ).catch(err => console.error('Failed to send notification:', err));
 
       res.status(200).json({
         message: 'Импорт успешно завершен',

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { config } from '../config';
-import { MockTechRadarRepository, DatabaseTechRadarRepository, TechRadarValidationService, ITechRadarRepository, auditService, relatedTechRadarService } from '../services';
+import { MockTechRadarRepository, DatabaseTechRadarRepository, TechRadarValidationService, ITechRadarRepository, auditService, relatedTechRadarService, notificationService } from '../services';
 import { AppDataSource } from '../database';
 import { TechRadarEntity } from '../models';
 
@@ -207,6 +207,14 @@ export class TechRadarController {
         comment: 'Создание технологии',
       });
 
+      // Создаем уведомление (неблокирующее)
+      notificationService.notifyTechRadarChange(
+        authReq.user.id,
+        'CREATE',
+        `${saved.name} ${saved.version}`,
+        saved.id
+      ).catch(err => console.error('Failed to send notification:', err));
+
       res.status(201).json(saved);
     } catch (error: any) {
       const authReq = req as any;
@@ -293,6 +301,14 @@ export class TechRadarController {
         comment: `Обновление полей: ${Object.keys(updateData).join(', ')}`,
       });
 
+      // Создаем уведомление об обновлении (неблокирующее)
+      notificationService.notifyTechRadarChange(
+        authReq.user.id,
+        'UPDATE',
+        `${updated.name} ${updated.version}`,
+        updated.id
+      ).catch(err => console.error('Failed to send notification:', err));
+
       res.json(updated);
     } catch (error: any) {
       const authReq = req as any;
@@ -365,6 +381,14 @@ export class TechRadarController {
         ipAddress: req.ip,
         details: { name: existing.name, version: existing.version },
       });
+
+      // Создаем уведомление об удалении (неблокирующее)
+      notificationService.notifyTechRadarChange(
+        authReq.user.id,
+        'DELETE',
+        `${existing.name} ${existing.version}`,
+        id
+      ).catch(err => console.error('Failed to send notification:', err));
 
       res.status(204).send();
     } catch (error: any) {
