@@ -14,8 +14,10 @@ router.get('/statistics', apiLimiter, optionalAuth, controller.getStatistics.bin
 router.get('/category/:category', apiLimiter, optionalAuth, controller.getByCategory.bind(controller));
 router.get('/type/:type', apiLimiter, optionalAuth, controller.getByType.bind(controller));
 
+// Эндпоинт для просмотра технологии - доступен всем аутентифицированным
+router.get('/:id', apiLimiter, authenticate, controller.getById.bind(controller));
+
 // Эндпоинты для администраторов и менеджеров - CRUD операции
-router.get('/:id', apiLimiter, authenticate, isManagerOrAdmin, controller.getById.bind(controller));
 router.post('/', apiLimiter, techRadarWriteLimiter, authenticate, isManagerOrAdmin, controller.create.bind(controller));
 router.put('/:id', apiLimiter, techRadarWriteLimiter, authenticate, isManagerOrAdmin, controller.update.bind(controller));
 router.delete('/:id', apiLimiter, techRadarWriteLimiter, authenticate, isManagerOrAdmin, controller.delete.bind(controller));
