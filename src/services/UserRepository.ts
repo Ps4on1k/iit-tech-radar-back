@@ -48,7 +48,20 @@ export class DatabaseUserRepository {
 
   async update(id: string, userData: Partial<User>): Promise<User | undefined> {
     await this.repository.update(id, userData);
-    return this.findById(id);
+    const result = await this.repository.findOne({ where: { id } });
+    return result ?? undefined;
+  }
+
+  /**
+   * Получить всех администраторов и менеджеров
+   */
+  async getAdminsAndManagers(): Promise<User[]> {
+    return this.repository.find({
+      where: [
+        { role: 'admin', isActive: true },
+        { role: 'manager', isActive: true },
+      ],
+    });
   }
 
   async delete(id: string): Promise<boolean> {

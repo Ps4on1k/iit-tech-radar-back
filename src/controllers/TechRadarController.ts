@@ -213,7 +213,7 @@ export class TechRadarController {
         'CREATE',
         `${saved.name} ${saved.version}`,
         saved.id
-      ).catch(err => console.error('Failed to send notification:', err));
+      );
 
       res.status(201).json(saved);
     } catch (error: any) {
@@ -307,7 +307,7 @@ export class TechRadarController {
         'UPDATE',
         `${updated.name} ${updated.version}`,
         updated.id
-      ).catch(err => console.error('Failed to send notification:', err));
+      );
 
       res.json(updated);
     } catch (error: any) {
@@ -388,7 +388,7 @@ export class TechRadarController {
         'DELETE',
         `${existing.name} ${existing.version}`,
         id
-      ).catch(err => console.error('Failed to send notification:', err));
+      );
 
       res.status(204).send();
     } catch (error: any) {

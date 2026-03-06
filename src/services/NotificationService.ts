@@ -39,28 +39,37 @@ export class NotificationService {
 
   /**
    * Создать уведомление о изменении технологии
+   * Отправляет уведомление всем администраторам и менеджерам
    */
   async notifyTechRadarChange(
     userId: string,
     action: 'CREATE' | 'UPDATE' | 'DELETE',
     techName: string,
     techId: string
-  ): Promise<NotificationEntity> {
+  ): Promise<void> {
     const actionLabels = {
       CREATE: 'создана',
       UPDATE: 'обновлена',
       DELETE: 'удалена',
     };
 
-    return this.createNotification({
-      userId,
-      title: `Технология ${actionLabels[action]}`,
-      message: `Технология "${techName}" была ${actionLabels[action].toLowerCase()}`,
-      type: action === 'DELETE' ? 'warning' : 'success',
-      category: 'tech-radar',
-      actionUrl: `/tech-radar/${techId}`,
-      metadata: { techId, action },
-    });
+    // Получаем всех администраторов и менеджеров
+    const { DatabaseUserRepository } = await import('./UserRepository');
+    const userRepository = new DatabaseUserRepository();
+    const users = await userRepository.getAdminsAndManagers();
+
+    // Создаём уведомление для каждого
+    for (const user of users) {
+      await this.createNotification({
+        userId: user.id,
+        title: `Технология ${actionLabels[action]}`,
+        message: `Технология "${techName}" была ${actionLabels[action].toLowerCase()}`,
+        type: action === 'DELETE' ? 'warning' : 'success',
+        category: 'tech-radar',
+        actionUrl: `/tech-radar/${techId}`,
+        metadata: { techId, action },
+      });
+    }
   }
 
   /**
@@ -146,18 +155,12 @@ export function getNotificationService(): NotificationService {
 
 // Для обратной совместимости (но не используем напрямую в контроллерах)
 export const notificationService = {
-  notifyTechRadarChange: async (userId: string, action: 'CREATE' | 'UPDATE' | 'DELETE', techName: string, techId: string) => {
-    try {
-      return await getNotificationService().notifyTechRadarChange(userId, action, techName, techId);
-    } catch (error) {
-      console.error('NotificationService error:', error);
-    }
+  notifyTechRadarChange: (userId: string, action: 'CREATE' | 'UPDATE' | 'DELETE', techName: string, techId: string) => {
+    getNotificationService().notifyTechRadarChange(userId, action, techName, techId)
+      .catch(err => console.error('Failed to send TechRadar notification:', err));
   },
-  notifyImport: async (userId: string, success: boolean, imported: number, errors?: string[]) => {
-    try {
-      return await getNotificationService().notifyImport(userId, success, imported, errors);
-    } catch (error) {
-      console.error('NotificationService error:', error);
-    }
+  notifyImport: (userId: string, success: boolean, imported: number, errors?: string[]) => {
+    getNotificationService().notifyImport(userId, success, imported, errors)
+      .catch(err => console.error('Failed to send Import notification:', err));
   },
 };

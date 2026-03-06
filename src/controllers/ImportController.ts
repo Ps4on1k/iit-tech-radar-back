@@ -53,7 +53,7 @@ export class ImportController {
           false,
           result.imported,
           errorMessages
-        ).catch(err => console.error('Failed to send notification:', err));
+        );
 
         res.status(400).json({
           message: 'Импорт завершен с ошибками',
@@ -67,7 +67,7 @@ export class ImportController {
         authReq.user.id,
         true,
         result.imported
-      ).catch(err => console.error('Failed to send notification:', err));
+      );
 
       res.status(200).json({
         message: 'Импорт успешно завершен',
