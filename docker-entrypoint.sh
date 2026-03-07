@@ -6,7 +6,8 @@ echo "Starting Tech Radar Backend..."
 # Запуск миграций перед стартом приложения (только для DB_MODE=database)
 if [ "$DB_MODE" = "database" ]; then
   echo "Running database migrations..."
-  npm run migration:run || {
+  # Используем typeorm migration:run с compiled JS файлами
+  npx typeorm migration:run -d dist/typeorm.config.js || {
     echo "Migration failed, but continuing with application start..."
   }
   echo "Migrations completed."

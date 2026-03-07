@@ -26,6 +26,7 @@ export const AppDataSource = new DataSource({
         require('../models/TechRadarTagEntity').TechRadarTagEntity,
         require('../models/TechRadarAttachmentEntity').TechRadarAttachmentEntity,
         require('../models/NotificationEntity').NotificationEntity,
+        require('../models/AIConfigEntity').AIConfigEntity,
       ]
     : [__dirname + '/../models/*.js'],
   migrations: isDevelopment

@@ -1,6 +1,6 @@
 {
   "name": "tech-radar-backend",
-  "version": "1.25.0",
+  "version": "1.28.1",
   "description": "Backend для Tech Radar приложения",
   "main": "dist/index.js",
   "scripts": {
@@ -11,10 +11,10 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit",
-    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d typeorm.config.ts",
-    "migration:run": "typeorm-ts-node-commonjs migration:run -d typeorm.config.ts",
-    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d typeorm.config.ts",
-    "migration:show": "typeorm-ts-node-commonjs migration:show -d typeorm.config.ts",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/typeorm.config.ts",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/typeorm.config.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/typeorm.config.ts",
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d src/typeorm.config.ts",
     "seed": "ts-node src/database/seed.ts",
     "migrate:numeric": "node scripts/apply-numeric-migration.js",
     "create-test-audit-logs": "ts-node scripts/create-test-audit-logs.ts"

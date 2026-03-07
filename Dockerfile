@@ -13,9 +13,10 @@ RUN apk add --no-cache wget curl
 COPY package*.json ./
 RUN npm ci --frozen-lockfile
 
-# Copy source files for seed
-COPY src ./src
+# Copy compiled JS files
 COPY --from=builder /app/dist ./dist
+
+# Copy docker entrypoint
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x docker-entrypoint.sh
 

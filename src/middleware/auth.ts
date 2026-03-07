@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService, JwtPayload } from '../services/AuthService';
+import { logger } from '../utils/logger';
 
 const authService = new AuthService();
 
@@ -20,15 +21,21 @@ export const authenticate = (
   }
 
   const token = authHeader.substring(7);
-  const payload = authService.verifyToken(token);
+  
+  try {
+    const payload = authService.verifyToken(token);
 
-  if (!payload) {
-    res.status(401).json({ error: 'Неверный токен' });
-    return;
+    if (!payload) {
+      res.status(401).json({ error: 'Неверный токен' });
+      return;
+    }
+
+    (req as AuthenticatedRequest).user = payload;
+    next();
+  } catch (error: any) {
+    logger.error('Authentication error:', { error: error?.message || error });
+    res.status(401).json({ error: 'Ошибка аутентификации' });
   }
-
-  (req as AuthenticatedRequest).user = payload;
-  next();
 };
 
 export const optionalAuth = (

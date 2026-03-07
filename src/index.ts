@@ -8,12 +8,13 @@ import bcrypt from 'bcryptjs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { config } from './config';
-import { techRadarRoutes, authRoutes, importRoutes, versionRoutes, auditRoutes, relatedTechRadarRoutes, notificationRoutes, dashboardsRoutes } from './routes';
+import { techRadarRoutes, authRoutes, importRoutes, versionRoutes, auditRoutes, relatedTechRadarRoutes, notificationRoutes, dashboardsRoutes, aiConfigRoutes } from './routes';
 import { AppDataSource } from './database';
 import { enforceHttps, setSecureHeaders, errorHandler } from './middleware';
 import { HttpException } from './exceptions';
 import { logger } from './utils/logger';
 import { taskScheduler } from './utils/taskScheduler';
+import { DataSource } from 'typeorm';
 
 let server: any;
 
@@ -21,41 +22,57 @@ let server: any;
  * Применяет миграцию для изменения типа полей adoptionRate и popularityIndex
  * с numeric(2,2) на numeric(5,4) для поддержки значений > 1.0
  */
-async function applyNumericMigration() {
+async function applyNumericMigration(queryRunner: any) {
   try {
-    const queryRunner = AppDataSource.createQueryRunner();
-    await queryRunner.connect();
-
     // Проверяем текущий тип данных
     const result = await queryRunner.query(`
-      SELECT column_name, numeric_precision, numeric_scale 
-      FROM information_schema.columns 
-      WHERE table_name = 'tech_radar' 
+      SELECT column_name, numeric_precision, numeric_scale
+      FROM information_schema.columns
+      WHERE table_name = 'tech_radar'
       AND column_name IN ('adoptionRate', 'popularityIndex')
     `);
 
-    const needsMigration = result.some((row: any) => 
+    const needsMigration = result.some((row: any) =>
       row.numeric_precision !== 5 || row.numeric_scale !== 4
     );
 
     if (needsMigration) {
       logger.info('Применение миграции: изменение типа adoptionRate и popularityIndex на numeric(5,4)');
       await queryRunner.query(`
-        ALTER TABLE "tech_radar" 
+        ALTER TABLE "tech_radar"
         ALTER COLUMN "adoptionRate" TYPE numeric(5,4)
       `);
       await queryRunner.query(`
-        ALTER TABLE "tech_radar" 
+        ALTER TABLE "tech_radar"
         ALTER COLUMN "popularityIndex" TYPE numeric(5,4)
       `);
       logger.info('Миграция успешно применена');
     } else {
       logger.info('Миграция уже применена: поля имеют правильный тип numeric(5,4)');
     }
-
-    await queryRunner.release();
   } catch (error: any) {
     logger.error('Ошибка применения миграции:', { error: error?.message || error });
+    // Не прерываем запуск сервера из-за ошибки миграции
+  }
+}
+
+/**
+ * Автоматическое применение миграций при запуске
+ */
+async function applyMigrations(dataSource: DataSource) {
+  try {
+    const queryRunner = dataSource.createQueryRunner();
+    await queryRunner.connect();
+
+    logger.info('Проверка и применение миграций...');
+
+    // Применяем миграцию для полей adoptionRate и popularityIndex
+    await applyNumericMigration(queryRunner);
+
+    await queryRunner.release();
+    logger.info('Все миграции применены успешно');
+  } catch (error: any) {
+    logger.error('Ошибка применения миграций:', { error: error?.message || error });
     // Не прерываем запуск сервера из-за ошибки миграции
   }
 }
@@ -81,8 +98,8 @@ async function bootstrap() {
       await AppDataSource.initialize();
       logger.info('База данных подключена');
 
-      // Применяем миграцию для полей adoptionRate и popularityIndex
-      await applyNumericMigration();
+      // Автоматическое применение миграций
+      await applyMigrations(AppDataSource);
 
       // Запуск планировщика задач
       taskScheduler.start();
@@ -115,6 +132,7 @@ async function bootstrap() {
   app.use('/api/tech-radar', relatedTechRadarRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/dashboards', dashboardsRoutes);
+  app.use('/api/ai-config', aiConfigRoutes);
 
   // Swagger API documentation (только для development)
   if (process.env.NODE_ENV !== 'production') {

@@ -6,3 +6,4 @@ export { default as auditRoutes } from './audit';
 export { default as relatedTechRadarRoutes } from './relatedTechRadar';
 export { default as notificationRoutes } from './notifications';
 export { default as dashboardsRoutes } from './dashboards';
+export { default as aiConfigRoutes } from './aiConfig';
