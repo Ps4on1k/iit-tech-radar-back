@@ -14,4 +14,5 @@ export class AIConfigGlobalSettingsDto {
   apiKey?: string;
   apiEndpoint?: string;
   updateFrequency?: number; // в часах
+  defaultPrompt?: string; // Общий промпт для всех запросов
 }

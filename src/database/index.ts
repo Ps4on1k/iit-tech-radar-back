@@ -1,11 +1,10 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 
 dotenv.config({ path: '.env' });
 
-// Определяем режим: development (ts-node) или production (compiled)
-const isDevelopment = process.env.NODE_ENV !== 'production';
-
+// Всегда используем glob pattern для entities (работает и в src, и в dist)
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
@@ -13,24 +12,10 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'tech_radar',
-  synchronize: isDevelopment, // Auto-create tables в dev режиме
-  logging: isDevelopment,
-  // В dev режиме используем ts-node с явными импортами, в production - compiled JS
-  entities: isDevelopment
-    ? [
-        require('../models/User').User,
-        require('../models/TechRadarEntity').TechRadarEntity,
-        require('../models/AuditLogEntity').AuditLogEntity,
-        require('../models/TechRadarHistoryEntity').TechRadarHistoryEntity,
-        require('../models/TechRadarReviewEntity').TechRadarReviewEntity,
-        require('../models/TechRadarTagEntity').TechRadarTagEntity,
-        require('../models/TechRadarAttachmentEntity').TechRadarAttachmentEntity,
-        require('../models/NotificationEntity').NotificationEntity,
-        require('../models/AIConfigEntity').AIConfigEntity,
-      ]
-    : [__dirname + '/../models/*.js'],
-  migrations: isDevelopment
-    ? [__dirname + '/migrations/*.ts']
-    : [__dirname + '/migrations/*.js'],
+  synchronize: true, // Auto-create tables
+  logging: false,
+  // Используем glob pattern для entities - работает везде
+  entities: [path.join(__dirname, '/../models/*.js')],
+  migrations: [path.join(__dirname, '/migrations/*.{js,ts}')],
   subscribers: [],
 });

@@ -4,9 +4,12 @@ import { CreateAIConfigDto, UpdateAIConfigDto, AIConfigGlobalSettingsDto } from 
 import { AuditService } from './AuditService';
 import { logger } from '../utils/logger';
 import { AppDataSource } from '../database';
+import { AIUpdateService } from './AIUpdateService';
+import { AIConfig } from '../types/asyncapi';
 
 export class AIConfigService {
   private repository: Repository<AIConfigEntity> | null = null;
+  private aiUpdateService: AIUpdateService | null = null;
   private globalSettings: AIConfigGlobalSettingsDto = {
     apiKey: '',
     apiEndpoint: '',
@@ -22,6 +25,16 @@ export class AIConfigService {
       this.repository = AppDataSource.getRepository(AIConfigEntity);
     }
     return this.repository;
+  }
+
+  /**
+   * Получение или создание AIUpdateService
+   */
+  private getAIUpdateService(): AIUpdateService {
+    if (!this.aiUpdateService) {
+      this.aiUpdateService = new AIUpdateService(this.auditService);
+    }
+    return this.aiUpdateService;
   }
 
   async findAll(): Promise<AIConfigEntity[]> {
@@ -144,5 +157,135 @@ export class AIConfigService {
       where: { enabled: true },
       order: { displayName: 'ASC' }
     });
+  }
+
+  /**
+   * Запрос на обновление технологии через AI агента
+   */
+  async requestAIUpdate(
+    technologyId: string,
+    userId?: string,
+    reason?: string,
+    trigger?: string
+  ): Promise<string> {
+    const aiUpdateService = this.getAIUpdateService();
+
+    // Инициализируем сервис при первом вызове
+    if (!aiUpdateService) {
+      throw new Error('AIUpdateService не доступен');
+    }
+
+    try {
+      const correlationId = await aiUpdateService.requestUpdate(
+        technologyId,
+        undefined,
+        reason,
+        trigger
+      );
+
+      await this.auditService.logSuccess({
+        userId,
+        action: 'UPDATE',
+        entity: 'AIConfig',
+        entityId: technologyId,
+        details: {
+          correlationId,
+          action: 'AI update requested',
+          reason,
+          trigger
+        }
+      });
+
+      return correlationId;
+    } catch (error: any) {
+      logger.error('AIConfigService.requestAIUpdate: Error', { error: error?.message || error });
+      throw error;
+    }
+  }
+
+  /**
+   * Массовый запрос на обновление технологий через AI агента
+   */
+  async requestBulkAIUpdate(
+    technologyIds: string[],
+    userId?: string,
+    mode: 'parallel' | 'sequential' = 'parallel',
+    maxConcurrency: number = 3
+  ): Promise<string> {
+    const aiUpdateService = this.getAIUpdateService();
+
+    try {
+      const correlationId = await aiUpdateService.requestBulkUpdate(
+        technologyIds,
+        undefined,
+        mode,
+        maxConcurrency
+      );
+
+      await this.auditService.logSuccess({
+        userId,
+        action: 'UPDATE',
+        entity: 'AIConfig',
+        entityId: 'bulk',
+        details: {
+          correlationId,
+          action: 'AI bulk update requested',
+          count: technologyIds.length,
+          mode
+        }
+      });
+
+      return correlationId;
+    } catch (error: any) {
+      logger.error('AIConfigService.requestBulkAIUpdate: Error', { error: error?.message || error });
+      throw error;
+    }
+  }
+
+  /**
+   * Построение AI конфигурации для запроса
+   */
+  async buildAIConfigForRequest(fieldNames?: string[]): Promise<AIConfig> {
+    const enabledConfigs = await this.getEnabledConfigs();
+
+    const fields: Record<string, any> = {};
+
+    for (const config of enabledConfigs) {
+      if (!fieldNames || fieldNames.includes(config.fieldName)) {
+        fields[config.fieldName] = {
+          enabled: config.enabled,
+          prompt: config.prompt,
+          required: false
+        };
+      }
+    }
+
+    // Используем общий промпт из глобальных настроек, если он есть
+    const defaultPrompt = this.globalSettings.defaultPrompt || 
+      'Проанализируй технологию и обнови все доступные поля на основе последних данных';
+
+    return {
+      prompt: defaultPrompt,
+      fields
+    };
+  }
+
+  /**
+   * Проверка подключения к RabbitMQ
+   */
+  async checkRabbitMQConnection(): Promise<boolean> {
+    const aiUpdateService = this.getAIUpdateService();
+    return aiUpdateService.checkConnection();
+  }
+
+  /**
+   * Получение статуса AI сервиса
+   */
+  async getAIServiceStatus(): Promise<{
+    isInitialized: boolean;
+    rabbitMQ: any;
+  }> {
+    const aiUpdateService = this.getAIUpdateService();
+    return aiUpdateService.getStatus();
   }
 }

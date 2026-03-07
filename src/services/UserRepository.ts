@@ -21,34 +21,37 @@ export interface DbUser {
 }
 
 export class DatabaseUserRepository {
-  private repository: Repository<User>;
+  private repository: Repository<User> | null = null;
 
-  constructor() {
-    this.repository = AppDataSource.getRepository(User);
+  private getRepository(): Repository<User> {
+    if (!this.repository) {
+      this.repository = AppDataSource.getRepository(User);
+    }
+    return this.repository;
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
-    const result = await this.repository.findOne({ where: { email } });
+    const result = await this.getRepository().findOne({ where: { email } });
     return result ?? undefined;
   }
 
   async findById(id: string): Promise<User | undefined> {
-    const result = await this.repository.findOne({ where: { id } });
+    const result = await this.getRepository().findOne({ where: { id } });
     return result ?? undefined;
   }
 
   async findAll(): Promise<User[]> {
-    return this.repository.find();
+    return this.getRepository().find();
   }
 
   async create(userData: Partial<User>): Promise<User> {
-    const user = this.repository.create(userData);
-    return this.repository.save(user);
+    const user = this.getRepository().create(userData);
+    return this.getRepository().save(user);
   }
 
   async update(id: string, userData: Partial<User>): Promise<User | undefined> {
-    await this.repository.update(id, userData);
-    const result = await this.repository.findOne({ where: { id } });
+    await this.getRepository().update(id, userData);
+    const result = await this.getRepository().findOne({ where: { id } });
     return result ?? undefined;
   }
 
@@ -56,7 +59,7 @@ export class DatabaseUserRepository {
    * Получить всех администраторов и менеджеров
    */
   async getAdminsAndManagers(): Promise<User[]> {
-    return this.repository.find({
+    return this.getRepository().find({
       where: [
         { role: 'admin', isActive: true },
         { role: 'manager', isActive: true },
@@ -65,7 +68,7 @@ export class DatabaseUserRepository {
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await this.repository.delete(id);
+    const result = await this.getRepository().delete(id);
     return (result.affected ?? 0) > 0;
   }
 
@@ -74,7 +77,7 @@ export class DatabaseUserRepository {
   }
 
   async findByEmailExcludeId(email: string, excludeId: string): Promise<User | undefined> {
-    const result = await this.repository.findOne({ where: { email, id: excludeId } });
+    const result = await this.getRepository().findOne({ where: { email, id: excludeId } });
     return result ?? undefined;
   }
 }

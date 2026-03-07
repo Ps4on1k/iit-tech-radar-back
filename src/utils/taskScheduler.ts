@@ -2,14 +2,19 @@ import cron from 'node-cron';
 import { AuditCleanupService } from '../services/AuditCleanupService';
 import { logger } from '../utils/logger';
 
-// Создаём экземпляр сервиса
-const auditCleanupService = new AuditCleanupService();
-
 /**
  * Планировщик задач для фоновых операций
  */
 export class TaskScheduler {
   private cleanupJob: cron.ScheduledTask | null = null;
+  private auditCleanupService: AuditCleanupService | null = null;
+
+  private getAuditCleanupService(): AuditCleanupService {
+    if (!this.auditCleanupService) {
+      this.auditCleanupService = new AuditCleanupService();
+    }
+    return this.auditCleanupService;
+  }
 
   /**
    * Запустить планировщик задач
@@ -20,7 +25,7 @@ export class TaskScheduler {
     this.cleanupJob = cron.schedule('0 2 * * *', async () => {
       logger.info('Starting scheduled audit cleanup...');
       try {
-        const deletedCount = await auditCleanupService.cleanup();
+        const deletedCount = await this.getAuditCleanupService().cleanup();
         logger.info(`Audit cleanup completed. Deleted ${deletedCount} records.`);
       } catch (error: any) {
         logger.error('Scheduled audit cleanup failed:', {
@@ -52,7 +57,7 @@ export class TaskScheduler {
    */
   async runCleanupNow(): Promise<number> {
     logger.info('Running immediate audit cleanup...');
-    const deletedCount = await auditCleanupService.cleanup();
+    const deletedCount = await this.getAuditCleanupService().cleanup();
     logger.info(`Immediate audit cleanup completed. Deleted ${deletedCount} records.`);
     return deletedCount;
   }

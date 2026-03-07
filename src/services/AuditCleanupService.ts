@@ -8,11 +8,14 @@ import { logger } from '../utils/logger';
  * Удаляет записи старше 14 дней и оставляет запись об очистке
  */
 export class AuditCleanupService {
-  private repository: Repository<AuditLogEntity>;
+  private repository: Repository<AuditLogEntity> | null = null;
   private readonly RETENTION_DAYS = parseInt(process.env.AUDIT_RETENTION_DAYS || '14', 10);
 
-  constructor() {
-    this.repository = AppDataSource.getRepository(AuditLogEntity);
+  private getRepository(): Repository<AuditLogEntity> {
+    if (!this.repository) {
+      this.repository = AppDataSource.getRepository(AuditLogEntity);
+    }
+    return this.repository;
   }
 
   /**
@@ -27,7 +30,7 @@ export class AuditCleanupService {
       logger.info(`Audit cleanup: поиск записей старше ${cutoffDate.toISOString()} (период хранения: ${this.RETENTION_DAYS} дн.)`);
 
       // Считаем количество записей до удаления
-      const countBefore = await this.repository.count({
+      const countBefore = await this.getRepository().count({
         where: {
           timestamp: LessThan(cutoffDate),
         },
@@ -41,7 +44,7 @@ export class AuditCleanupService {
       }
 
       // Удаляем старые записи
-      const deleteResult = await this.repository
+      const deleteResult = await this.getRepository()
         .createQueryBuilder('audit')
         .delete()
         .where('audit.timestamp < :cutoffDate', { cutoffDate })
@@ -50,7 +53,7 @@ export class AuditCleanupService {
       const deletedCount = deleteResult.affected || 0;
 
       // Создаём запись об очистке
-      await this.repository.save({
+      await this.getRepository().save({
         action: 'AUDIT_CLEANUP',
         entity: 'Audit',
         status: 'SUCCESS',
@@ -72,7 +75,7 @@ export class AuditCleanupService {
 
       // Создаём запись об ошибке очистки
       try {
-        await this.repository.save({
+        await this.getRepository().save({
           action: 'AUDIT_CLEANUP',
           entity: 'Audit',
           status: 'FAILURE',
