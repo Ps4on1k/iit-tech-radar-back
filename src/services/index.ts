@@ -24,3 +24,4 @@ export {
   type CreateNotificationDto,
 } from './NotificationService';
 export { AuditCleanupService } from './AuditCleanupService';
+export { DashboardService, type DashboardMetrics } from './DashboardService';
