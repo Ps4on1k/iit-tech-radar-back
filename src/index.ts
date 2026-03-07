@@ -13,6 +13,7 @@ import { AppDataSource } from './database';
 import { enforceHttps, setSecureHeaders, errorHandler } from './middleware';
 import { HttpException } from './exceptions';
 import { logger } from './utils/logger';
+import { taskScheduler } from './utils/taskScheduler';
 
 let server: any;
 
@@ -82,6 +83,9 @@ async function bootstrap() {
 
       // Применяем миграцию для полей adoptionRate и popularityIndex
       await applyNumericMigration();
+
+      // Запуск планировщика задач
+      taskScheduler.start();
 
       // Автоматический seed пользователей
       await seedUsers();
@@ -184,7 +188,10 @@ async function gracefulShutdown() {
     logger.info('Закрытие соединения с БД...');
     await AppDataSource.destroy();
   }
-  
+
+  // Остановка планировщика задач
+  taskScheduler.stop();
+
   logger.info('Сервер остановлен');
   process.exit(0);
 }

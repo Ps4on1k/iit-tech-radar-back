@@ -23,3 +23,4 @@ export {
   getNotificationService,
   type CreateNotificationDto,
 } from './NotificationService';
+export { AuditCleanupService } from './AuditCleanupService';

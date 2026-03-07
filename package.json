@@ -1,6 +1,6 @@
 {
   "name": "tech-radar-backend",
-  "version": "1.22.0",
+  "version": "1.23.0",
   "description": "Backend для Tech Radar приложения",
   "main": "dist/index.js",
   "scripts": {
@@ -16,7 +16,8 @@
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d typeorm.config.ts",
     "migration:show": "typeorm-ts-node-commonjs migration:show -d typeorm.config.ts",
     "seed": "ts-node src/database/seed.ts",
-    "migrate:numeric": "node scripts/apply-numeric-migration.js"
+    "migrate:numeric": "node scripts/apply-numeric-migration.js",
+    "create-test-audit-logs": "ts-node scripts/create-test-audit-logs.ts"
   },
   "keywords": [
     "tech-radar",
@@ -35,6 +36,7 @@
     "express-session": "^1.19.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "node-cron": "^3.0.3",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.19.0",
@@ -52,6 +54,7 @@
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.2",
+    "@types/node-cron": "^3.0.11",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/supertest": "^7.2.0",
