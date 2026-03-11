@@ -199,9 +199,9 @@ export class MigrationMetadataController extends BaseController {
 
     // Роуты только для admin и manager
     router.post('/', authenticate, isAdminOrManager, this.create);
+    router.put('/priorities', authenticate, isAdminOrManager, this.updatePriorities);
     router.put('/upsert/:techRadarId', authenticate, isAdminOrManager, this.upsert);
     router.put('/:id', authenticate, isAdminOrManager, this.update);
-    router.put('/priorities', authenticate, isAdminOrManager, this.updatePriorities);
     router.delete('/:id', authenticate, isAdminOrManager, this.delete);
 
     return router;

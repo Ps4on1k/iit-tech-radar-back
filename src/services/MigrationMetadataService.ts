@@ -251,19 +251,22 @@ export class MigrationMetadataService {
 
   /**
    * Получить статистику миграций
+   * В бэклог включаем: сущности со статусом backlog + сущности без записи в migration_metadata
    */
   async getStatistics(): Promise<{
     total: number;
     byStatus: Record<string, number>;
     averageProgress: number;
     completedCount: number;
+    backlogWithNoMetadata: number;
   }> {
     const repo = this.getRepository();
-    
+
     const all = await repo.find();
     const byStatus: Record<string, number> = {};
     let totalProgress = 0;
     let completedCount = 0;
+    let backlogCount = 0;
 
     Object.values(MigrationStatus).forEach(status => {
       byStatus[status] = 0;
@@ -275,6 +278,10 @@ export class MigrationMetadataService {
       if (m.status === MigrationStatus.COMPLETED) {
         completedCount++;
       }
+      // Считаем бэклог: backlog + сущности без статуса (по умолчанию backlog)
+      if (m.status === MigrationStatus.BACKLOG) {
+        backlogCount++;
+      }
     });
 
     return {
@@ -282,6 +289,7 @@ export class MigrationMetadataService {
       byStatus,
       averageProgress: all.length > 0 ? Math.round(totalProgress / all.length) : 0,
       completedCount,
+      backlogWithNoMetadata: backlogCount,
     };
   }
 }
