@@ -1,11 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import { HttpException } from '../exceptions/HttpException';
+import { Router } from 'express';
 
 /**
  * Базовый контроллер с общими методами
  * Предоставляет единую обработку ошибок и вспомогательные методы
  */
 export abstract class BaseController {
+  /**
+   * Получение экземпляра Router
+   */
+  protected getRouter(): Router {
+    return Router();
+  }
+
   /**
    * Обработка ошибок в контроллере
    * Автоматически определяет тип ошибки и возвращает соответствующий статус

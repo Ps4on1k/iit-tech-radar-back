@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { config } from './config';
-import { techRadarRoutes, authRoutes, importRoutes, versionRoutes, auditRoutes, relatedTechRadarRoutes, notificationRoutes, dashboardsRoutes, aiConfigRoutes } from './routes';
+import { techRadarRoutes, authRoutes, importRoutes, versionRoutes, auditRoutes, relatedTechRadarRoutes, notificationRoutes, dashboardsRoutes, aiConfigRoutes, migrationMetadataRoutes } from './routes';
 import { AppDataSource } from './database';
 import { enforceHttps, setSecureHeaders, errorHandler } from './middleware';
 import { HttpException } from './exceptions';
@@ -133,6 +133,7 @@ async function bootstrap() {
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/dashboards', dashboardsRoutes);
   app.use('/api/ai-config', aiConfigRoutes);
+  app.use('/api/migration-metadata', migrationMetadataRoutes);
 
   // Swagger API documentation (только для development)
   if (process.env.NODE_ENV !== 'production') {

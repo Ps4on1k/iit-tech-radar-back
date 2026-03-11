@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { logger } from '../utils/logger';
 
 export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'IMPORT' | 'EXPORT' | 'PASSWORD_CHANGE';
-export type AuditEntity = 'TechRadar' | 'User' | 'Import' | 'Auth' | 'TechRadarReview' | 'TechRadarTag' | 'TechRadarTags' | 'TechRadarAttachment' | 'TechRadarHistory' | 'AIConfig';
+export type AuditEntity = 'TechRadar' | 'User' | 'Import' | 'Auth' | 'TechRadarReview' | 'TechRadarTag' | 'TechRadarTags' | 'TechRadarAttachment' | 'TechRadarHistory' | 'AIConfig' | 'MigrationMetadata';
 export type AuditStatus = 'SUCCESS' | 'FAILURE';
 
 export interface AuditLogOptions {
