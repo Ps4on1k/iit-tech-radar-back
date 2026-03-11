@@ -8,3 +8,4 @@ export { default as notificationRoutes } from './notifications';
 export { default as dashboardsRoutes } from './dashboards';
 export { default as aiConfigRoutes } from './aiConfig';
 export { default as migrationMetadataRoutes } from './migrationMetadata';
+export { default as migrationSnapshotsRoutes } from './migrationSnapshots';

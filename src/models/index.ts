@@ -6,3 +6,5 @@ export { TechRadarTagEntity } from './TechRadarTagEntity';
 export { TechRadarAttachmentEntity } from './TechRadarAttachmentEntity';
 export { TechRadarHistoryEntity } from './TechRadarHistoryEntity';
 export { NotificationEntity } from './NotificationEntity';
+export { MigrationMetadataEntity, MigrationStatus } from './MigrationMetadataEntity';
+export { MigrationSnapshotEntity } from './MigrationSnapshotEntity';

@@ -15,7 +15,10 @@ export const AppDataSource = new DataSource({
   synchronize: true, // Auto-create tables
   logging: false,
   // Используем glob pattern для entities - работает везде
-  entities: [path.join(__dirname, '/../models/*.js')],
+  entities: [
+    path.join(__dirname, '/../models/*.js'),
+    path.join(__dirname, '/../models/**/*.js'),
+  ],
   migrations: [path.join(__dirname, '/migrations/*.{js,ts}')],
   subscribers: [],
 });

@@ -10,7 +10,7 @@ export abstract class BaseController {
   /**
    * Получение экземпляра Router
    */
-  protected getRouter(): Router {
+  public getRouter(): Router {
     return Router();
   }
 
