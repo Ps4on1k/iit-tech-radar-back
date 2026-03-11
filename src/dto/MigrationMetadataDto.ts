@@ -56,6 +56,12 @@ export class UpdateMigrationPrioritiesDto {
     id: string;
     priority: number;
   }>;
+
+  /**
+   * Опционально: карта соответствия metadataId -> techRadarId
+   * Используется для создания записей для элементов без метаданных
+   */
+  techRadarIds?: Record<string, string>;
 }
 
 /**

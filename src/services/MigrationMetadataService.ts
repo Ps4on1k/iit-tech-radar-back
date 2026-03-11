@@ -180,6 +180,7 @@ export class MigrationMetadataService {
 
   /**
    * Массовое обновление приоритетов (для drag-n-drop)
+   * Если запись не найдена по ID, пытаемся найти по techRadarId и создать
    */
   async updatePriorities(
     dto: UpdateMigrationPrioritiesDto,
@@ -195,11 +196,39 @@ export class MigrationMetadataService {
 
     try {
       for (const item of dto.items) {
-        const metadata = await repository.findOne({ where: { id: item.id }, transaction: true });
+        let metadata = await repository.findOne({ where: { id: item.id }, transaction: true });
+        
         if (metadata) {
+          // Обновляем существующую запись
           metadata.priority = item.priority;
           const saved = await repository.save(metadata, { transaction: true });
           updated.push(saved);
+        } else {
+          // Если запись не найдена по ID, ищем по techRadarId из запроса
+          // Это нужно для элементов без метаданных (hasMetadata = false)
+          const techRadarId = (dto as any).techRadarIds?.[item.id];
+          if (techRadarId) {
+            const existingByTechRadar = await repository.findOne({ 
+              where: { techRadarId }, 
+              transaction: true 
+            });
+            
+            if (existingByTechRadar) {
+              existingByTechRadar.priority = item.priority;
+              const saved = await repository.save(existingByTechRadar, { transaction: true });
+              updated.push(saved);
+            } else {
+              // Создаем новую запись с указанным приоритетом
+              const newMetadata = repository.create({
+                techRadarId,
+                priority: item.priority,
+                status: MigrationStatus.BACKLOG,
+                progress: 0,
+              });
+              const saved = await repository.save(newMetadata, { transaction: true });
+              updated.push(saved);
+            }
+          }
         }
       }
 
@@ -251,7 +280,7 @@ export class MigrationMetadataService {
 
   /**
    * Получить статистику миграций
-   * В бэклог включаем: сущности со статусом backlog + сущности без записи в migration_metadata
+   * total = все сущности с миграционными данными (из VIEW) + все записи migration_metadata
    */
   async getStatistics(): Promise<{
     total: number;
@@ -261,35 +290,52 @@ export class MigrationMetadataService {
     backlogWithNoMetadata: number;
   }> {
     const repo = this.getRepository();
+    const queryRunner = AppDataSource.createQueryRunner();
 
-    const all = await repo.find();
-    const byStatus: Record<string, number> = {};
-    let totalProgress = 0;
-    let completedCount = 0;
-    let backlogCount = 0;
+    try {
+      // Получаем все сущности из VIEW (все технологии с миграционными данными)
+      const allViewData = await this.getAllFromView(true);
+      
+      // Получаем все записи из migration_metadata
+      const allMetadata = await repo.find();
+      
+      const byStatus: Record<string, number> = {};
+      let totalProgress = 0;
+      let completedCount = 0;
+      let backlogCount = 0;
 
-    Object.values(MigrationStatus).forEach(status => {
-      byStatus[status] = 0;
-    });
+      Object.values(MigrationStatus).forEach(status => {
+        byStatus[status] = 0;
+      });
 
-    all.forEach(m => {
-      byStatus[m.status] = (byStatus[m.status] || 0) + 1;
-      totalProgress += m.progress;
-      if (m.status === MigrationStatus.COMPLETED) {
-        completedCount++;
-      }
-      // Считаем бэклог: backlog + сущности без статуса (по умолчанию backlog)
-      if (m.status === MigrationStatus.BACKLOG) {
-        backlogCount++;
-      }
-    });
+      // Считаем статистику по записям migration_metadata
+      allMetadata.forEach(m => {
+        byStatus[m.status] = (byStatus[m.status] || 0) + 1;
+        totalProgress += m.progress;
+        if (m.status === MigrationStatus.COMPLETED) {
+          completedCount++;
+        }
+        if (m.status === MigrationStatus.BACKLOG) {
+          backlogCount++;
+        }
+      });
 
-    return {
-      total: all.length,
-      byStatus,
-      averageProgress: all.length > 0 ? Math.round(totalProgress / all.length) : 0,
-      completedCount,
-      backlogWithNoMetadata: backlogCount,
-    };
+      // Считаем сущности без метаданных (hasMetadata = false) как backlog
+      const withoutMetadata = allViewData.filter(v => !v.hasMetadata);
+      backlogCount += withoutMetadata.length;
+
+      // total = все записи metadata + сущности без метаданных
+      const total = allMetadata.length + withoutMetadata.length;
+
+      return {
+        total,
+        byStatus,
+        averageProgress: allMetadata.length > 0 ? Math.round(totalProgress / allMetadata.length) : 0,
+        completedCount,
+        backlogWithNoMetadata: backlogCount,
+      };
+    } finally {
+      // queryRunner не используется напрямую, но оставляем для совместимости
+    }
   }
 }
