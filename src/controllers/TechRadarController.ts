@@ -240,6 +240,9 @@ export class TechRadarController {
       const id = String(req.params.id);
       const updateData: Partial<TechRadarEntity> = req.body;
 
+      console.log('[TechRadarController.update] ID:', id);
+      console.log('[TechRadarController.update] updateData:', JSON.stringify(updateData, null, 2));
+
       // Проверка существования записи
       const existing = await techRadarRepo.findById(id);
       if (!existing) {

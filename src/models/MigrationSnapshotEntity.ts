@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from './User';
 
 /**
  * Снапшот завершенной миграции
@@ -62,6 +63,19 @@ export class MigrationSnapshotEntity {
    */
   @Column('int', { default: 100 })
   progress!: number;
+
+  /**
+   * Владелец миграции (на момент завершения)
+   */
+  @Column('uuid', { nullable: true, name: 'owner_id' })
+  ownerId?: string;
+
+  /**
+   * Связь с пользователем-владельцем
+   */
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'owner_id' })
+  owner?: User;
 
   /**
    * Дата завершения миграции

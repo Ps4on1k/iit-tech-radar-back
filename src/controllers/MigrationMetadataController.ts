@@ -83,15 +83,15 @@ export class MigrationMetadataController extends BaseController {
    * Доступно: admin, manager
    */
   private upsert = this.wrapAsync(async (req: Request, res: Response) => {
-    const techRadarId = Array.isArray(req.params.techRadarId) 
-      ? req.params.techRadarId[0] 
+    const techRadarId = Array.isArray(req.params.techRadarId)
+      ? req.params.techRadarId[0]
       : req.params.techRadarId;
     const dto: UpdateMigrationMetadataDto = req.body;
     const userId = (req as any).user?.id;
 
     // Пытаемся найти существующую запись
     const existing = await this.migrationService.findByTechRadarId(techRadarId);
-    
+
     if (existing) {
       // Обновляем существующую
       const updated = await this.migrationService.update(existing.id, dto, userId);
@@ -103,6 +103,7 @@ export class MigrationMetadataController extends BaseController {
         priority: dto.priority ?? 999999,
         status: dto.status ?? MigrationStatus.BACKLOG,
         progress: dto.progress ?? 0,
+        ownerId: dto.ownerId,
       };
       const created = await this.migrationService.create(createDto, userId);
       this.sendCreated(res, created);

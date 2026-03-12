@@ -21,16 +21,18 @@ export class MigrationMetadataService {
 
   /**
    * Получить все метаданные миграций из VIEW (объединенные данные)
+   * Примечание: используем прямой SQL запрос вместо VIEW для гибкости
    */
   async getAllFromView(includeCompleted: boolean = false): Promise<MigrationMetadataViewDto[]> {
     const queryRunner = AppDataSource.createQueryRunner();
     try {
       await queryRunner.connect();
-      
+
       const statusFilter = includeCompleted ? '' : "AND COALESCE(mm.status, 'backlog') != 'completed'";
-      
-      // VIEW не существует, используем прямой JOIN
+
+      // Используем прямой SQL запрос с LEFT JOIN для получения данных
       // recommendedAlternatives хранится как simple-array (строка через запятую)
+      // Добавляем LEFT JOIN с users для получения имени владельца
       const result = await queryRunner.query(`
         SELECT
           tr.id AS "techRadarId",
@@ -44,11 +46,14 @@ export class MigrationMetadataService {
           COALESCE(mm.priority, 999999) AS "priority",
           COALESCE(mm.status, 'backlog') AS "status",
           COALESCE(mm.progress, 0) AS "progress",
+          mm.owner_id AS "ownerId",
+          COALESCE(u."firstName" || ' ' || u."lastName", u.email) AS "ownerName",
           COALESCE(mm."createdAt", NOW()) AS "createdAt",
           COALESCE(mm."updatedAt", NOW()) AS "updatedAt",
           CASE WHEN mm.id IS NULL THEN false ELSE true END AS "hasMetadata"
         FROM tech_radar tr
         LEFT JOIN migration_metadata mm ON tr.id = mm.tech_radar_id
+        LEFT JOIN "users" u ON mm.owner_id = u.id
         WHERE (
           tr."versionToUpdate" IS NOT NULL
           OR tr."upgradePath" IS NOT NULL
@@ -59,7 +64,7 @@ export class MigrationMetadataService {
           CASE WHEN mm.id IS NULL THEN 1 ELSE 0 END,
           COALESCE(mm.priority, 999999) ASC
       `);
-      
+
       return result;
     } catch (error: any) {
       console.error('Error in getAllFromView:', error);
@@ -121,6 +126,7 @@ export class MigrationMetadataService {
       priority: dto.priority ?? 0,
       status: dto.status ?? MigrationStatus.BACKLOG,
       progress: dto.progress ?? 0,
+      ownerId: dto.ownerId,
     });
 
     const saved = await repository.save(metadata);
@@ -131,7 +137,7 @@ export class MigrationMetadataService {
         action: 'CREATE',
         entity: 'MigrationMetadata',
         entityId: saved.id,
-        details: { techRadarId: dto.techRadarId, priority: dto.priority, status: dto.status },
+        details: { techRadarId: dto.techRadarId, priority: dto.priority, status: dto.status, ownerId: dto.ownerId },
       });
     } catch (auditError: any) {
       logger.warn('Audit log failed for MigrationMetadata create', { error: auditError?.message });

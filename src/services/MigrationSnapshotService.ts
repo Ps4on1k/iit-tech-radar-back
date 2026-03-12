@@ -4,6 +4,7 @@ import { CreateMigrationSnapshotDto, MigrationSnapshotDto } from '../dto/Migrati
 import { AuditService } from './AuditService';
 import { logger } from '../utils/logger';
 import { AppDataSource } from '../database';
+import { User } from '../models/User';
 
 export class MigrationSnapshotService {
   private repository: Repository<MigrationSnapshotEntity> | null = null;
@@ -28,7 +29,7 @@ export class MigrationSnapshotService {
       order: { completedAt: 'DESC' },
     });
 
-    return snapshots.map(s => ({
+    return Promise.all(snapshots.map(async s => ({
       id: s.id,
       techRadarId: s.techRadarId,
       techName: s.techName,
@@ -39,9 +40,24 @@ export class MigrationSnapshotService {
       recommendedAlternatives: s.recommendedAlternatives,
       priority: s.priority,
       progress: s.progress,
+      ownerId: s.ownerId,
+      ownerName: s.ownerId ? await this.getOwnerNameById(s.ownerId) : undefined,
       completedAt: s.completedAt,
       completedBy: s.completedBy,
-    }));
+    })));
+  }
+
+  /**
+   * Получить имя владельца по ID
+   */
+  private async getOwnerNameById(ownerId: string): Promise<string | undefined> {
+    try {
+      const userRepo = AppDataSource.getRepository(User);
+      const user = await userRepo.findOne({ where: { id: ownerId } });
+      return user ? `${user.firstName} ${user.lastName}`.trim() || user.email : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -62,6 +78,8 @@ export class MigrationSnapshotService {
       recommendedAlternatives: result.recommendedAlternatives,
       priority: result.priority,
       progress: result.progress,
+      ownerId: result.ownerId,
+      ownerName: result.ownerId ? await this.getOwnerNameById(result.ownerId) : undefined,
       completedAt: result.completedAt,
       completedBy: result.completedBy,
     };
@@ -76,7 +94,7 @@ export class MigrationSnapshotService {
       order: { completedAt: 'DESC' },
     });
 
-    return snapshots.map(s => ({
+    return Promise.all(snapshots.map(async s => ({
       id: s.id,
       techRadarId: s.techRadarId,
       techName: s.techName,
@@ -87,9 +105,11 @@ export class MigrationSnapshotService {
       recommendedAlternatives: s.recommendedAlternatives,
       priority: s.priority,
       progress: s.progress,
+      ownerId: s.ownerId,
+      ownerName: s.ownerId ? await this.getOwnerNameById(s.ownerId) : undefined,
       completedAt: s.completedAt,
       completedBy: s.completedBy,
-    }));
+    })));
   }
 
   /**
@@ -107,6 +127,7 @@ export class MigrationSnapshotService {
       recommendedAlternatives: dto.recommendedAlternatives,
       priority: dto.priority ?? 0,
       progress: 100,
+      ownerId: dto.ownerId,
       completedBy: userId,
     });
 
@@ -118,7 +139,7 @@ export class MigrationSnapshotService {
         action: 'CREATE',
         entity: 'MigrationSnapshot',
         entityId: saved.id,
-        details: { techRadarId: dto.techRadarId, techName: dto.techName },
+        details: { techRadarId: dto.techRadarId, techName: dto.techName, ownerId: dto.ownerId },
       });
     } catch (auditError: any) {
       logger.warn('Audit log failed for MigrationSnapshot create', { error: auditError?.message });

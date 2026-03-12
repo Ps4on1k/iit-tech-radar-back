@@ -87,6 +87,7 @@ export class MigrationSnapshotController extends BaseController {
       upgradePath,
       recommendedAlternatives,
       priority: existingMetadata.priority,
+      ownerId: existingMetadata.ownerId, // Сохраняем владельца из метаданных
       completedBy: userId,
     };
 

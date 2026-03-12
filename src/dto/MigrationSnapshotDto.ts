@@ -46,6 +46,11 @@ export class CreateMigrationSnapshotDto {
    * ID пользователя, завершившего миграцию
    */
   completedBy?: string;
+
+  /**
+   * UUID владельца миграции
+   */
+  ownerId?: string;
 }
 
 /**
@@ -101,6 +106,16 @@ export class MigrationSnapshotDto {
    * Прогресс (всегда 100)
    */
   progress!: number;
+
+  /**
+   * UUID владельца миграции
+   */
+  ownerId?: string;
+
+  /**
+   * ФИО владельца миграции
+   */
+  ownerName?: string;
 
   /**
    * Дата завершения миграции

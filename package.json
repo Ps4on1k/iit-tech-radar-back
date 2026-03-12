@@ -17,7 +17,9 @@
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/typeorm.config.ts",
     "seed": "ts-node src/database/seed.ts",
     "migrate:numeric": "node scripts/apply-numeric-migration.js",
-    "create-test-audit-logs": "ts-node scripts/create-test-audit-logs.ts"
+    "create-test-audit-logs": "ts-node scripts/create-test-audit-logs.ts",
+    "update-view": "ts-node src/scripts/update-view.ts",
+    "check-table": "ts-node src/scripts/check-table.ts"
   },
   "keywords": [
     "tech-radar",

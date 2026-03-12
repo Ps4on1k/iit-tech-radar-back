@@ -23,6 +23,11 @@ export class CreateMigrationMetadataDto {
    * Прогресс выполнения (опционально, по умолчанию 0)
    */
   progress?: number;
+
+  /**
+   * UUID владельца миграции (опционально)
+   */
+  ownerId?: string;
 }
 
 /**
@@ -43,6 +48,11 @@ export class UpdateMigrationMetadataDto {
    * Прогресс выполнения (0-100)
    */
   progress?: number;
+
+  /**
+   * UUID владельца миграции
+   */
+  ownerId?: string;
 }
 
 /**
@@ -122,6 +132,16 @@ export class MigrationMetadataViewDto {
    * Прогресс выполнения
    */
   progress!: number;
+
+  /**
+   * UUID владельца миграции
+   */
+  ownerId?: string;
+
+  /**
+   * ФИО владельца миграции
+   */
+  ownerName?: string;
 
   /**
    * Дата создания
