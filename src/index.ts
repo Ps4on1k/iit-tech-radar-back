@@ -14,6 +14,8 @@ import { enforceHttps, setSecureHeaders, errorHandler } from './middleware';
 import { HttpException } from './exceptions';
 import { logger } from './utils/logger';
 import { taskScheduler } from './utils/taskScheduler';
+import { RabbitMQConsumerService } from './services/RabbitMQConsumerService';
+import { auditService } from './services/AuditService';
 import { DataSource } from 'typeorm';
 
 let server: any;
@@ -104,6 +106,12 @@ async function bootstrap() {
       // Запуск планировщика задач
       taskScheduler.start();
 
+      // Инициализация RabbitMQ Consumer (создание очередей и запуск потребления)
+      const rabbitMQConsumer = new RabbitMQConsumerService(auditService);
+      await rabbitMQConsumer.initialize();
+      await rabbitMQConsumer.startConsuming();
+      logger.info('RabbitMQ Consumer запущен (ожидание сообщений от Qwen Agent)');
+
       // Автоматический seed пользователей
       await seedUsers();
       logger.info('Seed пользователей завершен');
@@ -193,7 +201,7 @@ process.on('SIGINT', async () => {
 
 async function gracefulShutdown() {
   logger.info('Закрытие HTTP сервера...');
-  
+
   // Закрытие HTTP сервера
   if (server) {
     await new Promise<void>((resolve) => {
@@ -203,7 +211,7 @@ async function gracefulShutdown() {
       });
     });
   }
-  
+
   // Закрытие соединения с БД
   if (AppDataSource.isInitialized) {
     logger.info('Закрытие соединения с БД...');
@@ -212,6 +220,10 @@ async function gracefulShutdown() {
 
   // Остановка планировщика задач
   taskScheduler.stop();
+
+  // Закрытие RabbitMQ Consumer
+  logger.info('Закрытие RabbitMQ Consumer...');
+  // rabbitMQConsumer закроется автоматически при закрытии соединения
 
   logger.info('Сервер остановлен');
   process.exit(0);

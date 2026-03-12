@@ -264,6 +264,25 @@ npm run seed
 | PUT | `/api/ai-config/global-settings` | Admin | Обновить глобальные настройки |
 | DELETE | `/api/ai-config/:id` | Admin | Удалить конфигурацию |
 
+### RabbitMQ Integration (AsyncAPI)
+
+Backend автоматически создает очереди RabbitMQ при старте и обрабатывает сообщения от Qwen Agent.
+
+| Очередь | Направление | Описание |
+|---------|-------------|----------|
+| `techradar.requests` | Backend → Agent | Запросы на обновление AI |
+| `techradar.responses` | Agent → Backend | Ответы с результатами AI |
+| `techradar.requests.dlq` | - | Dead Letter Queue для неудачных запросов |
+| `techradar.responses.dlq` | - | Dead Letter Queue для неудачных ответов |
+
+**Логика обработки сообщений из `techradar.responses`:**
+
+1. **Если есть `technologyId`** - обновляется существующая сущность
+2. **Если нет `technologyId`** - поиск по паре `name` + `version`
+   - При совпадении - обновление
+   - При отсутствии совпадения - создание новой сущности
+3. **Обновляются только поля из сообщения** (фильтрация по разрешенным полям)
+
 ---
 
 ## 📝 Примеры запросов
