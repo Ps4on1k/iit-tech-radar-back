@@ -172,8 +172,20 @@ export class MigrationMetadataController extends BaseController {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const userId = (req as any).user?.id;
 
-    await this.migrationService.delete(id, userId);
-    this.sendNoContent(res);
+    console.log('[MigrationMetadataController.delete] Deleting metadata ID:', id);
+
+    try {
+      await this.migrationService.delete(id, userId);
+      this.sendNoContent(res);
+    } catch (error: any) {
+      console.error('[MigrationMetadataController.delete] Error:', error.message);
+      // Если запись не найдена - это не ошибка, просто возвращаем 204
+      if (error.message === 'Метаданные миграции не найдены') {
+        this.sendNoContent(res);
+        return;
+      }
+      throw error;
+    }
   });
 
   /**
